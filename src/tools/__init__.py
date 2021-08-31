@@ -1,0 +1,3 @@
+from ._convertor import convert_binary_to_image
+
+convert_binary_to_image = convert_binary_to_image
