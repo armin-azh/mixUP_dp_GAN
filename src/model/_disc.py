@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -47,3 +48,50 @@ class CustomDiscriminatorV1(nn.Module):
 
     def forward(self, input_tensor):
         return self._sequence_model(input_tensor)
+
+
+class DCGANDiscriminator(nn.Module):
+    def __init__(self, feature_maps: int, image_channels: int) -> None:
+        super(DCGANDiscriminator, self).__init__()
+
+        self._disc = nn.Sequential(
+            self._dic_block(image_channels, feature_maps, batch_norm=False),
+            self._dic_block(feature_maps, feature_maps * 2),
+            self._dic_block(feature_maps * 2, feature_maps * 4),
+            self._dic_block(feature_maps * 4, feature_maps * 8),
+            self._dic_block(feature_maps * 8, 1, kernel_size=4, stride=1, padding=0, last_block=True),
+        )
+
+    @staticmethod
+    def _dic_block(in_channel: int, out_channel: int, kernel_size: int = 4, stride: int = 2, padding: int = 1,
+                   bias: bool = False, batch_norm: bool = True, last_block: bool = False) -> nn.Sequential:
+        """
+
+        :param in_channel: input channels
+        :param out_channel: output channels
+        :param kernel_size: kernel size
+        :param stride: stride
+        :param padding: padding
+        :param bias: has bias
+        :param batch_norm: batch norm
+        :param last_block: is last block
+        :return:
+        """
+
+        if not last_block:
+            block = nn.Sequential(
+                nn.Conv2d(in_channel, out_channel, kernel_size, stride, padding, bias=bias),
+                nn.BatchNorm2d(out_channel) if batch_norm else nn.Identity(),
+                nn.LeakyReLU(0.2, inplace=True),
+            )
+
+        else:
+            block = nn.Sequential(
+                nn.Conv2d(in_channel, out_channel, kernel_size, stride, padding, bias=bias),
+                nn.Sigmoid(),
+            )
+
+        return block
+
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        return self._disc(input_tensor).view(-1, 1).squeeze(1)

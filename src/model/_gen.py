@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -56,3 +57,57 @@ class CustomGeneratorV1(nn.Module):
 
     def forward(self, input_tensor):
         return self._sequence_model(input_tensor)
+
+
+class DCGANGenerator(nn.Module):
+    def __init__(self, latent_dim: int, feature_maps: int, image_channels: int):
+        """
+
+        :param latent_dim: dimension of latent space
+        :param feature_maps: number of feature map
+        :param image_channels: number of image channel in database
+        """
+        super(DCGANGenerator, self).__init__()
+        self._gen = nn.Sequential(
+            self._gen_block(latent_dim, feature_maps * 8, kernel_size=4, stride=1, padding=0),
+            self._gen_block(feature_maps * 8, feature_maps * 4),
+            self._gen_block(feature_maps * 4, feature_maps * 2),
+            self._gen_block(feature_maps * 2, feature_maps),
+            self._gen_block(feature_maps, image_channels, last_block=True),
+        )
+
+    @staticmethod
+    def _gen_block(in_channel: int, out_channel: int, kernel_size: int = 4, stride: int = 2, padding: int = 1,
+                   bias: bool = False, last_block: bool = False) -> nn.Sequential:
+        """
+
+        :param in_channel: input channel
+        :param out_channel: output channel
+        :param kernel_size: filter size
+        :param stride: stride
+        :param padding: padding
+        :param bias: has bias
+        :param last_block: is last block
+        :return: Sequential module
+        """
+
+        if not last_block:
+            block = nn.Sequential(
+                nn.ConvTranspose2d(in_channel, out_channel, kernel_size, stride, padding, bias=bias),
+                nn.BatchNorm2d(out_channel),
+                nn.ReLU(True),
+            )
+        else:
+            block = nn.Sequential(
+                nn.ConvTranspose2d(in_channel, out_channel, kernel_size, stride, padding, bias=bias),
+                nn.Tanh(),
+            )
+        return block
+
+    def forward(self, noise: torch.Tensor) -> torch.Tensor:
+        """
+        forward propagation
+        :param noise: noise tensor
+        :return:
+        """
+        return self._gen(noise)
