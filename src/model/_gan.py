@@ -5,7 +5,7 @@ import torch
 from ._gen import DCGANGenerator
 from ._disc import DCGANDiscriminator
 
-from pytorch_lightning import LightningModule, Trainer, seed_everything
+from pytorch_lightning import LightningModule
 
 
 class DCGAN(LightningModule):

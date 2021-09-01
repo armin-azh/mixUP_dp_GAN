@@ -10,7 +10,8 @@ from src.loader import get_zero_dataloader
 
 operations = {
     "conv_bin_to_im": "cvt_bin_im",
-    "auto_encoder": "train_ae"
+    "auto_encoder": "train_ae",
+    "dc_gan": "train_dc_gan"
 }
 
 
@@ -43,6 +44,9 @@ def main(arguments: argparse.Namespace) -> None:
                                         save_path=save_path)
 
         model.fit()
+
+    elif arguments.op == operations.get("dc_gan"):
+        pass
 
 
 if __name__ == "__main__":
