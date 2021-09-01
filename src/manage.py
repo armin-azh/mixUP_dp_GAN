@@ -32,7 +32,7 @@ def main(arguments: argparse.Namespace) -> None:
         label_path = label_path.absolute()
         train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
                                                          arguments.shuffle, arguments.seed, arguments.batch,
-                                                         arguments.num_worker)
+                                                         arguments.num_worker, (arguments.width, arguments.height))
 
 
 if __name__ == "__main__":
@@ -52,5 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)
     parser.add_argument("--train_size", help="train size", type=float, default=.7)
     parser.add_argument("--test_size", help="test size", type=float, default=.3)
+    parser.add_argument("--width", help="set image width", type=int, default=63)
+    parser.add_argument("--height", help="set image height", type=int, default=135)
     args = parser.parse_args()
     main(args)
