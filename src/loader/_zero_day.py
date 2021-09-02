@@ -29,8 +29,7 @@ class ZeroDayDataset(Dataset):
         _im_p = str(self._file_names[idx])
         _im = io.imread(_im_p)
         _im = resize(_im, self._output_size)
-        _im = _im/255.
-        _im = np.expand_dims(_im, axis=0)
+        _im = np.expand_dims(_im, axis=-1)
         _im = ToTensor()(_im)
 
         return _im, self._labels[idx]

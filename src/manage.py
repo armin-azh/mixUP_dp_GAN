@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import random
 import torch
+from torchsummary import summary
 
 # tools
 from src.tools import convert_binary_to_image
@@ -18,10 +19,9 @@ operations = {
 }
 
 
-def main(arguments: argparse.Namespace, parse) -> None:
+def main(arguments: argparse.Namespace) -> None:
     """
     main function for run out command
-    :param parse:
     :param arguments: command line namespace
     :return: None
     """
@@ -62,12 +62,15 @@ def main(arguments: argparse.Namespace, parse) -> None:
                                                          arguments.shuffle, arguments.seed, arguments.batch,
                                                          arguments.num_worker, (arguments.width, arguments.height))
 
+        device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
+
         model = DCGAN(beta1=arguments.beta1,
-                      feature_maps_gen=arguments.get_feature_map,
+                      feature_maps_gen=arguments.gen_feature_map,
                       feature_maps_disc=arguments.disc_feature_map,
                       image_channels=arguments.channel,
                       latent_dim=arguments.latent_dim,
-                      lr=arguments.lr)
+                      lr=arguments.lr,
+                      device=arguments.device).to(device)
 
         model.fit(train_dataloader=train_loader, epochs=arguments.epochs)
 
@@ -89,12 +92,13 @@ if __name__ == "__main__":
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)
     parser.add_argument("--train_size", help="train size", type=float, default=.7)
     parser.add_argument("--test_size", help="test size", type=float, default=.3)
-    parser.add_argument("--width", help="set image width", type=int, default=63)
+    parser.add_argument("--width", help="set image width", type=int, default=100)
     parser.add_argument("--height", help="set image height", type=int, default=135)
     parser.add_argument("--channel", help="image channel", type=int, default=1)
     parser.add_argument("--beta1", help="adam hyper parameter", type=float, default=0.5)
     parser.add_argument("--gen_feature_map", help="generator feature map", type=int, default=64)
     parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
     parser.add_argument("--latent_dim", help="latent dimension", type=int, default=100)
+    parser.add_argument("--device", help="use cuda device", type=int, default=1)
     args = parser.parse_args()
-    main(args, parser)
+    main(args)
