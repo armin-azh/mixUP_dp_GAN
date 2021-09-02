@@ -1,5 +1,7 @@
 import argparse
 from pathlib import Path
+import random
+import torch
 
 # tools
 from src.tools import convert_binary_to_image
@@ -7,6 +9,7 @@ from src.tools import convert_binary_to_image
 # model
 from src.trainer import AutoEncoderCV1Container
 from src.loader import get_zero_dataloader
+from src.model import DCGAN
 
 operations = {
     "conv_bin_to_im": "cvt_bin_im",
@@ -15,12 +18,17 @@ operations = {
 }
 
 
-def main(arguments: argparse.Namespace) -> None:
+def main(arguments: argparse.Namespace, parse) -> None:
     """
     main function for run out command
+    :param parse:
     :param arguments: command line namespace
     :return: None
     """
+    # determine seed
+    random.seed(arguments.seed)
+    torch.manual_seed(arguments.seed)
+
     if arguments.op == operations.get("conv_bin_to_im"):
         in_dir = Path(arguments.input)
         out_dir = Path(arguments.out)
@@ -46,7 +54,22 @@ def main(arguments: argparse.Namespace) -> None:
         model.fit()
 
     elif arguments.op == operations.get("dc_gan"):
-        pass
+        im_path = Path(arguments.input)
+        im_path = im_path.absolute()
+        label_path = Path(arguments.input_lb)
+
+        train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                                         arguments.shuffle, arguments.seed, arguments.batch,
+                                                         arguments.num_worker, (arguments.width, arguments.height))
+
+        model = DCGAN(beta1=arguments.beta1,
+                      feature_maps_gen=arguments.get_feature_map,
+                      feature_maps_disc=arguments.disc_feature_map,
+                      image_channels=arguments.channel,
+                      latent_dim=arguments.latent_dim,
+                      lr=arguments.lr)
+
+        model.fit(train_dataloader=train_loader, epochs=arguments.epochs)
 
 
 if __name__ == "__main__":
@@ -69,5 +92,9 @@ if __name__ == "__main__":
     parser.add_argument("--width", help="set image width", type=int, default=63)
     parser.add_argument("--height", help="set image height", type=int, default=135)
     parser.add_argument("--channel", help="image channel", type=int, default=1)
+    parser.add_argument("--beta1", help="adam hyper parameter", type=float, default=0.5)
+    parser.add_argument("--gen_feature_map", help="generator feature map", type=int, default=64)
+    parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
+    parser.add_argument("--latent_dim", help="latent dimension", type=int, default=100)
     args = parser.parse_args()
-    main(args)
+    main(args, parser)

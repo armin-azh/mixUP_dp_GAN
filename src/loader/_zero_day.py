@@ -6,6 +6,7 @@ import pandas as pd
 
 import torch
 from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor
 
 from sklearn.model_selection import train_test_split
 from skimage import io
@@ -30,6 +31,7 @@ class ZeroDayDataset(Dataset):
         _im = resize(_im, self._output_size)
         _im = _im/255.
         _im = np.expand_dims(_im, axis=0)
+        _im = ToTensor()(_im)
 
         return _im, self._labels[idx]
 
