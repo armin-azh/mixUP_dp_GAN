@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import random
+from datetime import datetime
 import torch
 
 # tools
@@ -10,6 +11,9 @@ from src.tools import convert_binary_to_image
 from src.trainer import AutoEncoderCV1Container
 from src.loader import get_zero_dataloader
 from src.model import DCGAN
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 operations = {
     "conv_bin_to_im": "cvt_bin_im",
@@ -59,8 +63,10 @@ def main(arguments: argparse.Namespace) -> None:
 
         # paths
         save_path = Path(arguments.out)
-        save_path = save_path.joinpath("dc_gan")
+        _cu = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        save_path = save_path.joinpath("dc_gan").joinpath(_cu)
         save_path.mkdir(parents=True, exist_ok=True)
+
         plot_save_path = save_path.joinpath("plot")
         plot_save_path.mkdir(parents=True, exist_ok=True)
         images_save_path = save_path.joinpath("images")
@@ -80,8 +86,39 @@ def main(arguments: argparse.Namespace) -> None:
                       lr=arguments.lr,
                       device=arguments.device).to(device)
 
-        res = model.fit(train_dataloader=train_loader, epochs=arguments.epochs, valid_dataloader=valid_loader)
+        res = model.fit(train_dataloader=train_loader,
+                        epochs=arguments.epochs,
+                        valid_dataloader=valid_loader,
+                        image_save_path=images_save_path)
         print(res)
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        x = np.arange(arguments.epochs) + 1
+
+        train_loss = res["train_loss"]
+        valid_loss = res["valid_loss"]
+
+        t_gen = np.array(train_loss[1]).mean(axis=1)
+        t_disc = np.array(train_loss[0]).mean(axis=1)
+        v_gen = np.array(valid_loss[1]).mean(axis=1)
+        v_disc = np.array(valid_loss[0]).mean(axis=1)
+
+        # save loss plot
+        plt.title("Without DP and Mixup")
+
+        plt.semilogy(x, t_disc, color=colors[0], label="Train Disc Loss")
+        plt.semilogy(x, t_gen, color=colors[1], label="Train Gen Loss")
+
+        plt.semilogy(x, v_disc, color=colors[0], label="Valid Disc Loss", linestyle="-.")
+        plt.semilogy(x, v_gen, color=colors[1], label="Valid Gen Loss", linestyle="-.")
+
+        plt.xlabel("epoch")
+        plt.ylabel("loss")
+        plt.legend()
+
+        plt.savefig(str(plot_save_path.joinpath("loss.png")))
+        # end loss plot
+
 
 
 if __name__ == "__main__":

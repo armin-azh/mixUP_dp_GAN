@@ -1,7 +1,9 @@
 from typing import Union
+from pathlib import Path
 from torch import nn
 import torch
 from torch.utils.data import DataLoader
+import torchvision
 
 from ._gen import DCGANGenerator
 from ._disc import DCGANDiscriminator
@@ -164,7 +166,8 @@ class DCGAN(nn.Module):
     def _summary(self):
         print(f"[Device] {self._device}")
 
-    def fit(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None):
+    def fit(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
+            image_save_path: Union[Path, None] = None):
         self._summary()
 
         glob_gen_loss = []
@@ -173,6 +176,7 @@ class DCGAN(nn.Module):
         val_glob_gen_loss = []
         val_glob_disc_loss = []
 
+        print("[READY] training is now starting ...")
         for epoch in range(epochs):
             gen_loss = []
             disc_loss = []
@@ -193,9 +197,10 @@ class DCGAN(nn.Module):
                 self._gen_opt.step()
                 gen_loss.append(error_g_fake.item())
 
-                if batch_idx % frequency == 0:
+                if batch_idx + 1 % frequency == 0:
                     print('[TRAIN] => [%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
-                          % (epoch, epochs, batch_idx, len(train_dataloader), error_d_real.item(), error_g_fake.item()))
+                          % (epoch + 1, epochs, batch_idx + 1, len(train_dataloader), error_d_real.item(),
+                             error_g_fake.item()))
 
             glob_disc_loss.append(disc_loss)
             glob_gen_loss.append(gen_loss)
@@ -215,5 +220,10 @@ class DCGAN(nn.Module):
                     val_gen_loss.append(error_g_fake.item())
                 val_glob_disc_loss.append(val_disc_loss)
                 val_glob_gen_loss.append(val_gen_loss)
+
+            if image_save_path is not None:
+                sample_noise = self._get_simple_noise(1, self._latent_dim)
+                output = self._forward(sample_noise)
+                torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
 
         return {"train_loss": [glob_disc_loss, glob_gen_loss], "valid_loss": [val_glob_disc_loss, val_glob_gen_loss]}
