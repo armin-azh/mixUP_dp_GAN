@@ -90,7 +90,6 @@ def main(arguments: argparse.Namespace) -> None:
                         epochs=arguments.epochs,
                         valid_dataloader=valid_loader,
                         image_save_path=images_save_path)
-        print(res)
 
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         x = np.arange(arguments.epochs) + 1
