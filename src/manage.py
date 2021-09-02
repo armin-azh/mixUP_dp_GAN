@@ -57,6 +57,15 @@ def main(arguments: argparse.Namespace) -> None:
         im_path = im_path.absolute()
         label_path = Path(arguments.input_lb)
 
+        # paths
+        save_path = Path(arguments.out)
+        save_path = save_path.joinpath("dc_gan")
+        save_path.mkdir(parents=True, exist_ok=True)
+        plot_save_path = save_path.joinpath("plot")
+        plot_save_path.mkdir(parents=True, exist_ok=True)
+        images_save_path = save_path.joinpath("images")
+        images_save_path.mkdir(parents=True, exist_ok=True)
+
         train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
                                                          arguments.shuffle, arguments.seed, arguments.batch,
                                                          arguments.num_worker, (arguments.width, arguments.height))
@@ -71,7 +80,8 @@ def main(arguments: argparse.Namespace) -> None:
                       lr=arguments.lr,
                       device=arguments.device).to(device)
 
-        model.fit(train_dataloader=train_loader, epochs=arguments.epochs)
+        res = model.fit(train_dataloader=train_loader, epochs=arguments.epochs, valid_dataloader=valid_loader)
+        print(res)
 
 
 if __name__ == "__main__":
@@ -85,7 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", help="determine the weight decay", type=float, default=1e-5)
     parser.add_argument("--lr", help="learning rate", type=float, default=1e-3)
     parser.add_argument("--seed", help="random seed", type=float, default=999)
-    parser.add_argument("--epochs", help="number of epochs", type=int, default=10)
+    parser.add_argument("--epochs", help="number of epochs", type=int, default=5)
     parser.add_argument("--shuffle", help="enable shuffling", type=bool, default=True)
     parser.add_argument("--batch", help="batch size", type=int, default=64)
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)

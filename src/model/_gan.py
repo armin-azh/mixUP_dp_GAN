@@ -1,6 +1,7 @@
-from argparse import ArgumentParser
+from typing import Union
 from torch import nn
 import torch
+from torch.utils.data import DataLoader
 
 from ._gen import DCGANGenerator
 from ._disc import DCGANDiscriminator
@@ -163,13 +164,20 @@ class DCGAN(nn.Module):
     def _summary(self):
         print(f"[Device] {self._device}")
 
-    def fit(self, train_dataloader, epochs: int, frequency: int = 10):
+    def fit(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None):
         self._summary()
+
         glob_gen_loss = []
         glob_disc_loss = []
+
+        val_glob_gen_loss = []
+        val_glob_disc_loss = []
+
         for epoch in range(epochs):
             gen_loss = []
             disc_loss = []
+
+            # train phase
             for batch_idx, data in enumerate(train_dataloader):
                 real_data = data[0].float().to(self._device)
 
@@ -186,10 +194,26 @@ class DCGAN(nn.Module):
                 gen_loss.append(error_g_fake.item())
 
                 if batch_idx % frequency == 0:
-                    print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
-                          % (epoch, epochs, batch_idx, len(train_dataloader),
-                             error_d_real.item(), error_g_fake.item(), .0, .0, .0))
-                    # errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                    print('[TRAIN] => [%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
+                          % (epoch, epochs, batch_idx, len(train_dataloader), error_d_real.item(), error_g_fake.item()))
 
             glob_disc_loss.append(disc_loss)
             glob_gen_loss.append(gen_loss)
+
+            if valid_dataloader is not None:
+                val_gen_loss = []
+                val_disc_loss = []
+                for val_batch_idx, data in enumerate(valid_dataloader):
+                    real_data = data[0].float().to(self._device)
+
+                    # discriminator
+                    error_d_real = self._disc_step(real_data)
+                    val_disc_loss.append(error_d_real.item())
+
+                    # generator
+                    error_g_fake = self._gen_step(real_data)
+                    val_gen_loss.append(error_g_fake.item())
+                val_glob_disc_loss.append(val_disc_loss)
+                val_glob_gen_loss.append(val_gen_loss)
+
+        return {"train_loss": [glob_disc_loss, glob_gen_loss], "valid_loss": [val_glob_disc_loss, val_glob_gen_loss]}
