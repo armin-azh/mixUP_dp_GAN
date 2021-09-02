@@ -1,5 +1,6 @@
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
+import numpy as np
 from torch import nn
 import torch
 from torch.utils.data import DataLoader
@@ -237,3 +238,17 @@ class DCGAN(nn.Module):
 
         torch.save(self._discriminator.state_dict, file_name.joinpath("discriminator.pt"))
         torch.save(self._generator.state_dict, file_name.joinpath("generator.pt"))
+
+    @staticmethod
+    def mix_up_observation(data: torch.Tensor, y: torch.Tensor, alpha: float, device: torch.device):
+        if alpha > 0:
+            lam = np.random.beta(alpha, alpha)
+        else:
+            lam = 1
+
+        b_s = data.size()[0]
+        index = torch.randperm(b_s).to(device)
+
+        mixed_x = lam * data + (1 - lam) * data[index, :]
+        y_a, y_b = y, y[index]
+        return mixed_x, y_a, y_b, lam

@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", help="determine the weight decay", type=float, default=1e-5)
     parser.add_argument("--lr", help="learning rate", type=float, default=1e-3)
     parser.add_argument("--seed", help="random seed", type=float, default=999)
-    parser.add_argument("--epochs", help="number of epochs", type=int, default=5)
+    parser.add_argument("--epochs", help="number of epochs", type=int, default=20)
     parser.add_argument("--shuffle", help="enable shuffling", type=bool, default=True)
     parser.add_argument("--batch", help="batch size", type=int, default=64)
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)
@@ -152,5 +152,6 @@ if __name__ == "__main__":
     parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
     parser.add_argument("--latent_dim", help="latent dimension", type=int, default=100)
     parser.add_argument("--device", help="use cuda device", type=int, default=1)
+    parser.add_argument("--alpha", help="mixup coefficient", type=float, default=1)
     args = parser.parse_args()
     main(args)
