@@ -12,6 +12,8 @@ from src.trainer import AutoEncoderCV1Container
 from src.loader import get_zero_dataloader
 from src.model import DCGAN
 
+from src.tools import save_parameters
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -78,6 +80,8 @@ def main(arguments: argparse.Namespace) -> None:
 
         device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
 
+        save_parameters(vars(arguments), save_path.joinpath("parameters.txt"))
+
         model = DCGAN(beta1=arguments.beta1,
                       feature_maps_gen=arguments.gen_feature_map,
                       feature_maps_disc=arguments.disc_feature_map,
@@ -117,7 +121,6 @@ def main(arguments: argparse.Namespace) -> None:
 
         plt.savefig(str(plot_save_path.joinpath("loss.png")))
         # end loss plot
-
 
 
 if __name__ == "__main__":
