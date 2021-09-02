@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 import random
 import torch
-from torchsummary import summary
 
 # tools
 from src.tools import convert_binary_to_image

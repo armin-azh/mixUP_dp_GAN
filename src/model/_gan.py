@@ -62,7 +62,8 @@ class DCGAN(nn.Module):
         get discriminator module
         :return: module
         """
-        disc = DCGANDiscriminator(feature_maps=self._disc_feature_map, image_channels=self._image_channels).to(self._device)
+        disc = DCGANDiscriminator(feature_maps=self._disc_feature_map, image_channels=self._image_channels).to(
+            self._device)
         disc.apply(self._weights_init)
         return disc
 
@@ -84,7 +85,7 @@ class DCGAN(nn.Module):
         """
         return torch.randn(n_samples, latent_dim, device=self._device)
 
-    def _get_fake_pred(self, real: torch.Tensor) -> torch.Tensor:
+    def _gen_fake_pred(self, real: torch.Tensor) -> torch.Tensor:
         """
         reproduce new fake samples
         :param real: new batch samples
@@ -114,13 +115,12 @@ class DCGAN(nn.Module):
         :param real:
         :return:
         """
-        print(real.size())
         real_pred = self._discriminator.forward(real)
         real_gt = torch.ones_like(real_pred)
         real_loss = self._criterion(real_pred, real_gt)
 
         # Train with fake
-        fake_pred = self._get_fake_pred(real)
+        fake_pred = self._gen_fake_pred(real)
         fake_gt = torch.zeros_like(fake_pred)
         fake_loss = self._criterion(fake_pred, fake_gt)
 
@@ -165,16 +165,31 @@ class DCGAN(nn.Module):
 
     def fit(self, train_dataloader, epochs: int, frequency: int = 10):
         self._summary()
+        glob_gen_loss = []
+        glob_disc_loss = []
         for epoch in range(epochs):
+            gen_loss = []
+            disc_loss = []
             for batch_idx, data in enumerate(train_dataloader):
                 real_data = data[0].float().to(self._device)
 
-
+                self._discriminator.zero_grad()
                 error_d_real = self._disc_step(real_data)
-                print(error_d_real)
+                error_d_real.backward()
+                self._disc_opt.step()
+                disc_loss.append(error_d_real.item())
+
+                self._generator.zero_grad()
+                error_g_fake = self._gen_step(real_data)
+                error_g_fake.backward()
+                self._gen_opt.step()
+                gen_loss.append(error_g_fake.item())
 
                 if batch_idx % frequency == 0:
                     print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
                           % (epoch, epochs, batch_idx, len(train_dataloader),
-                             .0, .0, .0, .0, .0))
+                             error_d_real.item(), error_g_fake.item(), .0, .0, .0))
                     # errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+
+            glob_disc_loss.append(disc_loss)
+            glob_gen_loss.append(gen_loss)
