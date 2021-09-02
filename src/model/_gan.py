@@ -252,3 +252,14 @@ class DCGAN(nn.Module):
         mixed_x = lam * data + (1 - lam) * data[index, :]
         y_a, y_b = y, y[index]
         return mixed_x, y_a, y_b, lam
+
+    def mix_up_criterion(self, pred: torch.Tensor, target_a, target_b, lam):
+        """
+
+        :param pred:
+        :param target_a:
+        :param target_b:
+        :param lam:
+        :return:
+        """
+        return lam * self._criterion(pred, target_a) + (1 - lam) * self._criterion(pred, target_b)
