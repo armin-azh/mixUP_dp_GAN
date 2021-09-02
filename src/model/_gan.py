@@ -197,7 +197,7 @@ class DCGAN(nn.Module):
                 self._gen_opt.step()
                 gen_loss.append(error_g_fake.item())
 
-                if batch_idx + 1 % frequency == 0:
+                if batch_idx % frequency == 0:
                     print('[TRAIN] => [%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
                           % (epoch + 1, epochs, batch_idx + 1, len(train_dataloader), error_d_real.item(),
                              error_g_fake.item()))
@@ -227,3 +227,13 @@ class DCGAN(nn.Module):
                 torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
 
         return {"train_loss": [glob_disc_loss, glob_gen_loss], "valid_loss": [val_glob_disc_loss, val_glob_gen_loss]}
+
+    def save_model(self, file_name: Path) -> None:
+        """
+        save path directory
+        :param file_name:
+        :return: None
+        """
+
+        torch.save(self._discriminator.state_dict, file_name.joinpath("discriminator.pt"))
+        torch.save(self._generator.state_dict, file_name.joinpath("generator.pt"))

@@ -73,6 +73,8 @@ def main(arguments: argparse.Namespace) -> None:
         plot_save_path.mkdir(parents=True, exist_ok=True)
         images_save_path = save_path.joinpath("images")
         images_save_path.mkdir(parents=True, exist_ok=True)
+        model_save_path = save_path.joinpath("model")
+        model_save_path.mkdir(parents=True, exist_ok=True)
 
         train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
                                                          arguments.shuffle, arguments.seed, arguments.batch,
@@ -94,6 +96,8 @@ def main(arguments: argparse.Namespace) -> None:
                         epochs=arguments.epochs,
                         valid_dataloader=valid_loader,
                         image_save_path=images_save_path)
+
+        model.save_model(file_name=model_save_path)
 
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         x = np.arange(arguments.epochs) + 1
