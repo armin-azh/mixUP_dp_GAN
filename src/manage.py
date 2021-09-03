@@ -153,7 +153,52 @@ def main(arguments: argparse.Namespace) -> None:
                                                arguments.shuffle, arguments.seed, arguments.batch,
                                                arguments.num_worker, (arguments.width, arguments.height))
 
+        device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
 
+        save_parameters(vars(arguments), save_path.joinpath("parameters.txt"))
+
+        model = DCGAN(beta1=arguments.beta1,
+                      feature_maps_gen=arguments.gen_feature_map,
+                      feature_maps_disc=arguments.disc_feature_map,
+                      image_channels=arguments.channel,
+                      latent_dim=arguments.latent_dim,
+                      lr=arguments.lr,
+                      device=arguments.device).to(device)
+
+        res = model.fit_with_mix_up(train_dataloader=train_loader,
+                                    train_dataloader_2=train_loader2,
+                                    epochs=arguments.epochs,
+                                    valid_dataloader=valid_loader,
+                                    image_save_path=images_save_path)
+
+        model.save_model(file_name=model_save_path)
+
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        x = np.arange(arguments.epochs) + 1
+
+        train_loss = res["train_loss"]
+        valid_loss = res["valid_loss"]
+
+        t_gen = np.array(train_loss[1]).mean(axis=1)
+        t_disc = np.array(train_loss[0]).mean(axis=1)
+        v_gen = np.array(valid_loss[1]).mean(axis=1)
+        v_disc = np.array(valid_loss[0]).mean(axis=1)
+
+        # save loss plot
+        plt.title("With Mix-up")
+
+        plt.semilogy(x, t_disc, color=colors[0], label="Train Disc Loss")
+        plt.semilogy(x, t_gen, color=colors[1], label="Train Gen Loss")
+
+        plt.semilogy(x, v_disc, color=colors[0], label="Valid Disc Loss", linestyle="-.")
+        plt.semilogy(x, v_gen, color=colors[1], label="Valid Gen Loss", linestyle="-.")
+
+        plt.xlabel("epoch")
+        plt.ylabel("loss")
+        plt.legend()
+
+        plt.savefig(str(plot_save_path.joinpath("loss.png")))
+        # end loss plot
 
 
 if __name__ == "__main__":
