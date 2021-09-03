@@ -1,5 +1,7 @@
+from typing import Tuple
 import torch
 from torch import nn
+import numpy as np
 
 
 class CustomDiscriminatorV1(nn.Module):
@@ -60,7 +62,7 @@ class DCGANDiscriminator(nn.Module):
             self._dic_block(feature_maps * 2, feature_maps * 4),
             self._dic_block(feature_maps * 4, feature_maps * 8),
             self._dic_block(feature_maps * 8, 1, kernel_size=4),
-            self._dic_block(1, 1, kernel_size=(2,4),padding=0, last_block=True),
+            self._dic_block(1, 1, kernel_size=(2, 4), padding=0, last_block=True),
         )
 
     @staticmethod
@@ -97,3 +99,22 @@ class DCGANDiscriminator(nn.Module):
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         _res = self._disc(input_tensor)
         return _res.view(-1, 1).squeeze(1)
+
+
+class WDiscriminator(nn.Module):
+    def __init__(self, image_shape: Tuple[int, int]):
+        super(WDiscriminator, self).__init__()
+        self._image_shape = image_shape
+
+        self._seq_model = nn.Sequential(
+            nn.Linear(int(np.prod(self._image_shape)), 512),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(256, 1)
+
+        )
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+        flatten = img.view(img.size(0), -1)
+        return self._seq_model(flatten)

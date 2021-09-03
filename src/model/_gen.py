@@ -1,5 +1,8 @@
+from typing import Tuple
+
 import torch
 from torch import nn
+import numpy as np
 
 
 class CustomGeneratorV1(nn.Module):
@@ -72,9 +75,9 @@ class DCGANGenerator(nn.Module):
             self._gen_block(latent_dim, feature_maps * 16, kernel_size=4, stride=1, padding=0),
             self._gen_block(feature_maps * 16, feature_maps * 8),
             self._gen_block(feature_maps * 8, feature_maps * 4),
-            self._gen_block(feature_maps * 4, feature_maps*2),
+            self._gen_block(feature_maps * 4, feature_maps * 2),
             self._gen_block(feature_maps * 2, feature_maps * 1),
-            self._gen_block(feature_maps, image_channels, last_block=True,stride=(1,2),kernel_size=(3,4)),
+            self._gen_block(feature_maps, image_channels, last_block=True, stride=(1, 2), kernel_size=(3, 4)),
         )
 
     @staticmethod
@@ -112,3 +115,31 @@ class DCGANGenerator(nn.Module):
         :return:
         """
         return self._gen(noise)
+
+
+class WGenerator(nn.Module):
+    def __init__(self, latent_dim: int, image_shape: Tuple[int, int]):
+        super(WGenerator, self).__init__()
+        self._latent_dim = latent_dim
+        self._image_shape = image_shape
+        self._seq_model = nn.Sequential(
+            *self.make_block(self._latent_dim, 128, normalized=False),
+            *self.make_block(128, 256),
+            *self.make_block(256, 512),
+            *self.make_block(512, 1024),
+            nn.Linear(1024, int(np.prod(self._image_shape))),
+            nn.Tanh()
+        )
+
+    @staticmethod
+    def make_block(in_feature: int, out_feature: int, normalized: bool = True):
+        layers = [nn.Linear(in_features=in_feature, out_features=out_feature)]
+        if normalized:
+            layers.append(nn.BatchNorm1d(out_feature, 0.8))
+
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        return layers
+
+    def forward(self, noise: torch.Tensor) -> torch.Tensor:
+        img = self._seq_model(noise)
+        return img.view(img.size(0), *self._image_shape)
