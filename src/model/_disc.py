@@ -59,7 +59,8 @@ class DCGANDiscriminator(nn.Module):
             self._dic_block(feature_maps, feature_maps * 2),
             self._dic_block(feature_maps * 2, feature_maps * 4),
             self._dic_block(feature_maps * 4, feature_maps * 8),
-            self._dic_block(feature_maps * 8, 1, kernel_size=4, stride=1, padding=0, last_block=True),
+            self._dic_block(feature_maps * 8, 1, kernel_size=4),
+            self._dic_block(1, 1, kernel_size=(2,4),padding=0, last_block=True),
         )
 
     @staticmethod
@@ -94,4 +95,6 @@ class DCGANDiscriminator(nn.Module):
         return block
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        return self._disc(input_tensor).view(-1, 1).squeeze(1)
+        _res = self._disc(input_tensor)
+        print(_res.shape)
+        return _res.view(-1, 1).squeeze(1)

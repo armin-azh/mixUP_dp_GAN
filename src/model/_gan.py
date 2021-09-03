@@ -31,6 +31,7 @@ class DCGAN(nn.Module):
         self._disc_feature_map = feature_maps_disc
         self._lr = lr
         self._alpha = alpha
+        self._lam = np.random.beta(self._alpha, self._alpha)
         self._device = torch.device("cuda:0" if (torch.cuda.is_available() and device > 0) else "cpu")
 
         # loss function
@@ -169,6 +170,67 @@ class DCGAN(nn.Module):
     def _summary(self):
         print(f"[Device] {self._device}")
 
+    def _get_mix_up_disc_loss(self, real1: torch.Tensor, real2: torch.Tensor) -> torch.Tensor:
+        """
+        calculate mix up loss value
+        :param real1:
+        :param real2:
+        :return:
+        """
+        perm1 = torch.randperm(real1.size(0))
+        fake1 = self._forward(noise=self._get_simple_noise(n_samples=len(real1), latent_dim=self._latent_dim))
+        data1 = torch.cat([real1, fake1])
+
+    def _disc_mix_up_step(self, real1: torch.Tensor, real2: torch.Tensor) -> torch.Tensor:
+        """
+        return loss value
+        :param real1:
+        :param real2:
+        :return:
+        """
+        pass
+
+    def mix_up_data(self, real1: torch.Tensor, label1: torch.Tensor, real2: torch.Tensor, label2: torch.Tensor) -> \
+            Tuple[torch.Tensor, torch.Tensor]:
+        """
+        mix up the 2 batches
+        :param label2:
+        :param label1:
+        :param real1: batch of first dataloader
+        :param real2: batch of second dataloader
+        :return: mixed up data
+        """
+        _d = self._alpha * real1 + (1 - self._alpha) * real2
+        _l = self._alpha * label1 + (1 - self._alpha) * label2
+        return _d, _l
+
+    def fit_with_mix_up(self, train_dataloader, train_dataloader_2, epochs: int, frequency: int = 5,
+                        valid_dataloader: Union[None, DataLoader] = None,
+                        image_save_path: Union[Path, None] = None):
+        self._summary()
+
+        glob_gen_loss = []
+        glob_disc_loss = []
+
+        val_glob_gen_loss = []
+        val_glob_disc_loss = []
+
+        print("[READY] training is now starting ...")
+        for epoch in range(epochs):
+            gen_loss = []
+            disc_loss = []
+            # train phase
+            for batch_idx, data in enumerate(zip(train_dataloader, train_dataloader_2)):
+                (data1, y1), (data2, y2) = data
+                data1 = data1.float().to(self._device)
+                data2 = data2.float().to(self._device)
+
+                self._generator.zero_grad()
+                error_g_fake = self._gen_step(data1)
+                error_g_fake.backward()
+                self._gen_opt.step()
+                gen_loss.append(error_g_fake.item())
+
     def fit(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
             image_save_path: Union[Path, None] = None):
         self._summary()
@@ -240,6 +302,3 @@ class DCGAN(nn.Module):
 
         torch.save(self._discriminator.state_dict, file_name.joinpath("discriminator.pt"))
         torch.save(self._generator.state_dict, file_name.joinpath("generator.pt"))
-
-    def gen_mix_up_batch(self, real: torch.Tensor) -> torch.Tensor:
-        pass

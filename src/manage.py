@@ -20,7 +20,8 @@ import numpy as np
 operations = {
     "conv_bin_to_im": "cvt_bin_im",
     "auto_encoder": "train_ae",
-    "dc_gan": "train_dc_gan"
+    "dc_gan": "train_dc_gan",
+    "dc_gan_mix_up": "train_dc_gan_mix_up",
 }
 
 
@@ -125,6 +126,34 @@ def main(arguments: argparse.Namespace) -> None:
 
         plt.savefig(str(plot_save_path.joinpath("loss.png")))
         # end loss plot
+
+    elif arguments.op == operations.get("dc_gan_mix_up"):
+        im_path = Path(arguments.input)
+        im_path = im_path.absolute()
+        label_path = Path(arguments.input_lb)
+
+        # paths
+        save_path = Path(arguments.out)
+        _cu = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        save_path = save_path.joinpath("dc_gan_mix_up").joinpath(_cu)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        plot_save_path = save_path.joinpath("plot")
+        plot_save_path.mkdir(parents=True, exist_ok=True)
+        images_save_path = save_path.joinpath("images")
+        images_save_path.mkdir(parents=True, exist_ok=True)
+        model_save_path = save_path.joinpath("model")
+        model_save_path.mkdir(parents=True, exist_ok=True)
+
+        train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                                         arguments.shuffle, arguments.seed, arguments.batch,
+                                                         arguments.num_worker, (arguments.width, arguments.height))
+
+        train_loader2, _ = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                               arguments.shuffle, arguments.seed, arguments.batch,
+                                               arguments.num_worker, (arguments.width, arguments.height))
+
+
 
 
 if __name__ == "__main__":
