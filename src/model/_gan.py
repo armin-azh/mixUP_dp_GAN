@@ -31,7 +31,6 @@ class DCGAN(nn.Module):
         self._disc_feature_map = feature_maps_disc
         self._lr = lr
         self._alpha = alpha
-        self._lam = np.random.beta(self._alpha, self._alpha)
         self._device = torch.device("cuda:0" if (torch.cuda.is_available() and device > 0) else "cpu")
 
         # loss function
@@ -177,9 +176,43 @@ class DCGAN(nn.Module):
         :param real2:
         :return:
         """
+        lam = np.random.beta(self._alpha, self._alpha)
+
         perm1 = torch.randperm(real1.size(0))
-        fake1 = self._forward(noise=self._get_simple_noise(n_samples=len(real1), latent_dim=self._latent_dim))
-        data1 = torch.cat([real1, fake1])
+        # fake1 = self._forward(noise=self._get_simple_noise(n_samples=len(real1), latent_dim=self._latent_dim))
+        # data1 = torch.cat([real1, fake1])
+        # ones1 = torch.autograd.Variable(torch.ones(real1.size(0), 1))
+        # zeros1 = torch.autograd.Variable(torch.zeros(fake1.size(0), 1))
+        # label1 = torch.cat([ones1, zeros1])
+
+        data1 = real1[perm1]
+        label1 = torch.ones(data1.size(0))
+
+        perm2 = torch.randperm(real2.size(0))
+        # fake2 = self._forward(noise=self._get_simple_noise(n_samples=len(real2), latent_dim=self._latent_dim))
+        # data2 = torch.cat([real2, fake2])
+        # ones2 = torch.autograd.Variable(torch.ones(real2.size(0), 1))
+        # zeros2 = torch.autograd.Variable(torch.zeros(fake2.size(0), 1))
+        # label2 = torch.cat([ones2, zeros2])
+
+        data2 = real2[perm2]
+        label2 = torch.ones(data2.size(0))
+
+        mixed_data = lam * data1 + (1 - lam) * data2
+        mixed_label = lam * label1 + (1 - lam) * label2
+
+        real_pred = self._discriminator.forward(mixed_data)
+        real_gt = mixed_label
+        real_loss = self._criterion(real_pred, real_gt)
+
+        # Train with fake
+        fake_pred = self._gen_fake_pred(mixed_data)
+        fake_gt = torch.zeros_like(fake_pred)
+        fake_loss = self._criterion(fake_pred, fake_gt)
+
+        disc_loss = real_loss + fake_loss
+
+        return disc_loss
 
     def _disc_mix_up_step(self, real1: torch.Tensor, real2: torch.Tensor) -> torch.Tensor:
         """
@@ -188,7 +221,7 @@ class DCGAN(nn.Module):
         :param real2:
         :return:
         """
-        pass
+        return self._get_mix_up_disc_loss(real1=real1,real2=real2)
 
     def mix_up_data(self, real1: torch.Tensor, label1: torch.Tensor, real2: torch.Tensor, label2: torch.Tensor) -> \
             Tuple[torch.Tensor, torch.Tensor]:
