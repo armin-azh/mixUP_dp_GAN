@@ -69,11 +69,12 @@ class DCGANGenerator(nn.Module):
         """
         super(DCGANGenerator, self).__init__()
         self._gen = nn.Sequential(
-            self._gen_block(latent_dim, feature_maps * 8, kernel_size=4, stride=1, padding=0),
+            self._gen_block(latent_dim, feature_maps * 16, kernel_size=4, stride=1, padding=0),
+            self._gen_block(feature_maps * 16, feature_maps * 8),
             self._gen_block(feature_maps * 8, feature_maps * 4),
-            self._gen_block(feature_maps * 4, feature_maps * 2),
-            self._gen_block(feature_maps * 2, feature_maps),
-            self._gen_block(feature_maps, image_channels, last_block=True),
+            self._gen_block(feature_maps * 4, feature_maps*2),
+            self._gen_block(feature_maps * 2, feature_maps * 1),
+            self._gen_block(feature_maps, image_channels, last_block=True,stride=(1,2),kernel_size=(3,4)),
         )
 
     @staticmethod

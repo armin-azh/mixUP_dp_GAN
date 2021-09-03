@@ -21,6 +21,7 @@ class DCGAN(nn.Module):
             image_channels: int = 1,
             latent_dim: int = 100,
             lr: float = 0.0002,
+            alpha: float = 1,
             device: int = 0):
         super(DCGAN, self).__init__()
         self._betas = (beta1, 0.999)
@@ -29,6 +30,7 @@ class DCGAN(nn.Module):
         self._gen_feature_map = feature_maps_gen
         self._disc_feature_map = feature_maps_disc
         self._lr = lr
+        self._alpha = alpha
         self._device = torch.device("cuda:0" if (torch.cuda.is_available() and device > 0) else "cpu")
 
         # loss function
@@ -239,27 +241,5 @@ class DCGAN(nn.Module):
         torch.save(self._discriminator.state_dict, file_name.joinpath("discriminator.pt"))
         torch.save(self._generator.state_dict, file_name.joinpath("generator.pt"))
 
-    @staticmethod
-    def mix_up_observation(data: torch.Tensor, y: torch.Tensor, alpha: float, device: torch.device):
-        if alpha > 0:
-            lam = np.random.beta(alpha, alpha)
-        else:
-            lam = 1
-
-        b_s = data.size()[0]
-        index = torch.randperm(b_s).to(device)
-
-        mixed_x = lam * data + (1 - lam) * data[index, :]
-        y_a, y_b = y, y[index]
-        return mixed_x, y_a, y_b, lam
-
-    def mix_up_criterion(self, pred: torch.Tensor, target_a, target_b, lam):
-        """
-
-        :param pred:
-        :param target_a:
-        :param target_b:
-        :param lam:
-        :return:
-        """
-        return lam * self._criterion(pred, target_a) + (1 - lam) * self._criterion(pred, target_b)
+    def gen_mix_up_batch(self, real: torch.Tensor) -> torch.Tensor:
+        pass

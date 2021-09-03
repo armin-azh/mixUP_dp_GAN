@@ -2,8 +2,9 @@ import time
 import sys
 import os
 
-_, term_width = os.popen('stty size', 'r').read().split()
-term_width = int(term_width)
+# # _, term_width = os.popen('stty size', 'r').read().split()
+# term_width = int(term_width)
+term_width = 80
 
 TOTAL_BAR_LENGTH = 86.
 last_time = time.time()
@@ -44,7 +45,7 @@ def format_time(seconds):
 
 
 def progress_bar(current, total, msg=None):
-    global last_time, begin_time
+    global last_time, begin_time, term_width
 
     if current == 0:
         begin_time = time.time()  # Reset for new bar.
