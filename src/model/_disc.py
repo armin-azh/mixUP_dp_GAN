@@ -96,5 +96,4 @@ class DCGANDiscriminator(nn.Module):
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         _res = self._disc(input_tensor)
-        print(_res.shape)
         return _res.view(-1, 1).squeeze(1)
