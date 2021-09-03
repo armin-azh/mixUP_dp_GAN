@@ -221,7 +221,7 @@ class DCGAN(nn.Module):
         :param real2:
         :return:
         """
-        return self._get_mix_up_disc_loss(real1=real1,real2=real2)
+        return self._get_mix_up_disc_loss(real1=real1, real2=real2)
 
     def mix_up_data(self, real1: torch.Tensor, label1: torch.Tensor, real2: torch.Tensor, label2: torch.Tensor) -> \
             Tuple[torch.Tensor, torch.Tensor]:
@@ -240,6 +240,16 @@ class DCGAN(nn.Module):
     def fit_with_mix_up(self, train_dataloader, train_dataloader_2, epochs: int, frequency: int = 5,
                         valid_dataloader: Union[None, DataLoader] = None,
                         image_save_path: Union[Path, None] = None):
+        """
+        fit the model with mix up augmentation
+        :param train_dataloader:
+        :param train_dataloader_2:
+        :param epochs:
+        :param frequency:
+        :param valid_dataloader:
+        :param image_save_path:
+        :return:
+        """
         self._summary()
 
         glob_gen_loss = []
@@ -258,11 +268,48 @@ class DCGAN(nn.Module):
                 data1 = data1.float().to(self._device)
                 data2 = data2.float().to(self._device)
 
+                self._discriminator.zero_grad()
+                error_d_real = self._disc_mix_up_step(data1, data2)
+                error_d_real.backward()
+                self._disc_opt.step()
+                disc_loss.append(error_d_real.item())
+
                 self._generator.zero_grad()
                 error_g_fake = self._gen_step(data1)
                 error_g_fake.backward()
                 self._gen_opt.step()
                 gen_loss.append(error_g_fake.item())
+
+                if batch_idx % frequency == 0:
+                    print('[TRAIN] => [%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
+                          % (epoch + 1, epochs, batch_idx + 1, len(train_dataloader), error_d_real.item(),
+                             error_g_fake.item()))
+
+            glob_disc_loss.append(disc_loss)
+            glob_gen_loss.append(gen_loss)
+
+            if valid_dataloader is not None:
+                val_gen_loss = []
+                val_disc_loss = []
+                for val_batch_idx, data in enumerate(valid_dataloader):
+                    real_data = data[0].float().to(self._device)
+
+                    # discriminator
+                    error_d_real = self._disc_step(real_data)
+                    val_disc_loss.append(error_d_real.item())
+
+                    # generator
+                    error_g_fake = self._gen_step(real_data)
+                    val_gen_loss.append(error_g_fake.item())
+                val_glob_disc_loss.append(val_disc_loss)
+                val_glob_gen_loss.append(val_gen_loss)
+
+            if image_save_path is not None:
+                sample_noise = self._get_simple_noise(1, self._latent_dim)
+                output = self._forward(sample_noise)
+                torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
+
+        return {"train_loss": [glob_disc_loss, glob_gen_loss], "valid_loss": [val_glob_disc_loss, val_glob_gen_loss]}
 
     def fit(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
             image_save_path: Union[Path, None] = None):
