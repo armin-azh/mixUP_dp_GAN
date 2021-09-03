@@ -7,3 +7,4 @@ AutoEncodeCustomV1 = CustomAutoEncoderV1
 DCGAN = DCGAN
 DCGANGenerator = DCGANGenerator
 DCGANDiscriminator = DCGANDiscriminator
+WGAN = WGAN

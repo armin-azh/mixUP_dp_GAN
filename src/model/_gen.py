@@ -141,5 +141,6 @@ class WGenerator(nn.Module):
         return layers
 
     def forward(self, noise: torch.Tensor) -> torch.Tensor:
+        print(noise.shape)
         img = self._seq_model(noise)
         return img.view(img.size(0), *self._image_shape)

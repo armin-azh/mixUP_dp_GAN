@@ -8,7 +8,7 @@ import torch
 from src.tools import convert_binary_to_image
 
 # model
-from src.trainer import AutoEncoderCV1Container
+from src.trainer import AutoEncoderCV1Container, WGanTrainer
 from src.loader import get_zero_dataloader
 from src.model import DCGAN
 
@@ -22,6 +22,7 @@ operations = {
     "auto_encoder": "train_ae",
     "dc_gan": "train_dc_gan",
     "dc_gan_mix_up": "train_dc_gan_mix_up",
+    "w_gan": "train_w_gan"
 }
 
 
@@ -199,6 +200,30 @@ def main(arguments: argparse.Namespace) -> None:
 
         plt.savefig(str(plot_save_path.joinpath("loss.png")))
         # end loss plot
+
+    elif arguments.op == operations.get("w_gan"):
+        im_path = Path(arguments.input)
+        im_path = im_path.absolute()
+        label_path = Path(arguments.input_lb)
+
+        save_path = Path(arguments.out)
+        _cu = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        save_path = save_path.joinpath("w_gan").joinpath(_cu)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
+
+        save_parameters(vars(arguments), save_path.joinpath("parameters.txt"))
+
+        train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                                         arguments.shuffle, arguments.seed, arguments.batch,
+                                                         arguments.num_worker, (arguments.width, arguments.height))
+
+        trainer = WGanTrainer(image_shape=(arguments.width, arguments.height), latent_dim=arguments.latent_dim,
+                              image_channel=arguments.channel, lr=arguments.lr, alpha=arguments.alpha, device=device,
+                              save_path=save_path)
+
+        trainer.train(train_loader=train_loader, epochs=arguments.epochs, validation_loader=valid_loader)
 
 
 if __name__ == "__main__":

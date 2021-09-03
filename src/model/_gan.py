@@ -536,6 +536,9 @@ class WGAN(nn.Module):
                 self._disc_opt.step()
                 disc_loss.append(error_d_real.item())
 
+                for p in self._discriminator.parameters():
+                    p.data.clamp_(-0.01, 0.01)
+
                 if batch_idx % frequency == 0:
                     self._generator.zero_grad()
                     error_g_fake = self._gen_step(real_data)
