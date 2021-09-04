@@ -15,7 +15,7 @@ from ._arch import Generator, Critic
 class WGan:
     def __init__(self, image_size: Tuple[int, int], latent_dim: int, beta1: float, lr: float, image_channel: int,
                  gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, alpha: float,
-                 clip: float, device: torch.device):
+                 clip: float, sigma: float, batch_size: int, device: torch.device):
         self._latent_dim = latent_dim
         self._image_size = image_size
         self._betas = (beta1, 0.999)
@@ -27,6 +27,8 @@ class WGan:
         self._c_lambda = c_lambda
         self._alpha = alpha
         self._clip_weight = clip
+        self._sigma = sigma
+        self._batch_size = batch_size
         self._device = device
 
         self._generator = Generator(latent_dim=self._latent_dim, image_channel=self._image_channel,
@@ -131,6 +133,11 @@ class WGan:
         if train_dataloader_2 is None:
             train_dataloader_2 = [None] * len(train_dataloader)
 
+        if dp:
+            for p in self._discriminator.parameters():
+                p.register_hook(
+                    lambda grad_: grad_ + (1 / self._batch_size) * torch.normal(mean=0, std=self._sigma, size=p.shape))
+
         print("[READY] training is now starting ...")
         for epoch in range(epochs):
             gen_loss = []
@@ -169,6 +176,11 @@ class WGan:
                     mean_iter_critic_loss += critic_loss.item() / self._critic_repeat
                     critic_loss.backward(retain_graph=True)
                     self._disc_opt.step()
+
+                    # clip the parameters
+                    for p in self._discriminator.parameters():
+                        p.data.clamp_(-self._clip_weight, self._clip_weight)
+
                 disc_loss.append(mean_iter_critic_loss)
 
                 # generator update

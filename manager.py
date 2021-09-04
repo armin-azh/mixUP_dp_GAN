@@ -3,6 +3,7 @@ from pathlib import Path
 import random
 from datetime import datetime
 import torch
+import numpy as np
 
 # tools
 from source.loader import get_zero_dataloader
@@ -30,6 +31,7 @@ def main(arguments: argparse.Namespace) -> None:
     # determine seed
     random.seed(arguments.seed)
     torch.manual_seed(arguments.seed)
+    np.random.seed(arguments.seed)
 
     if arguments.op == operations.get("w_gan"):
         im_path = Path(arguments.input)
@@ -73,6 +75,8 @@ def main(arguments: argparse.Namespace) -> None:
                      c_lambda=arguments.c_lambda,
                      alpha=arguments.alpha,
                      clip=arguments.clip,
+                     sigma=arguments.sigma,
+                     batch_size=arguments.batch_size,
                      device=device)
 
         res = model.train(train_dataloader=train_loader,
@@ -110,9 +114,10 @@ if __name__ == "__main__":
     parser.add_argument("--beta1", help="adam hyper parameter", type=float, default=0.5)
     parser.add_argument("--gen_feature_map", help="generator feature map", type=int, default=64)
     parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
-    parser.add_argument("--clip", help="clip weight for (differential privacy)", type=float, default=0.1)
+    parser.add_argument("--clip", help="clip weight for (differential privacy)", type=float, default=0.01)
     parser.add_argument("--c_repeat", help="critic repeat for (differential privacy)", type=int, default=5)
     parser.add_argument("--c_lambda", help="critic lambda", type=int, default=10)
+    parser.add_argument("--sigma", help="noise scale coefficient", type=float, default=12.)
     parser.add_argument("--latent_dim", help="latent dimension", type=int, default=100)
     parser.add_argument("--show_rate", help="show status is specific rate", type=int, default=5)
     parser.add_argument("--device", help="use cuda device", type=int, default=1)
