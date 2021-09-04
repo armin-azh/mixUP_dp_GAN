@@ -76,7 +76,7 @@ def main(arguments: argparse.Namespace) -> None:
                      alpha=arguments.alpha,
                      clip=arguments.clip,
                      sigma=arguments.sigma,
-                     batch_size=arguments.batch_size,
+                     batch_size=arguments.batch,
                      device=device)
 
         res = model.train(train_dataloader=train_loader,

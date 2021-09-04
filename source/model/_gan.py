@@ -134,9 +134,10 @@ class WGan:
             train_dataloader_2 = [None] * len(train_dataloader)
 
         if dp:
+            print('ok')
             for p in self._discriminator.parameters():
                 p.register_hook(
-                    lambda grad_: grad_ + (1 / self._batch_size) * torch.normal(mean=0, std=self._sigma, size=p.shape))
+                    lambda grad_: grad_ + (1 / self._batch_size) * torch.normal(mean=0, std=self._sigma, size=p.shape,device=self._device))
 
         print("[READY] training is now starting ...")
         for epoch in range(epochs):
