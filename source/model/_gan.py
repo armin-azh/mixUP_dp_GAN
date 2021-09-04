@@ -38,6 +38,8 @@ class WGan:
         self._gen_opt = torch.optim.Adam(self._generator.parameters(), lr=self._learning_rate, betas=self._betas)
         self._disc_opt = torch.optim.Adam(self._discriminator.parameters(), lr=self._learning_rate, betas=self._betas)
 
+        self._title = None
+
     def get_noise(self, n_samples: int):
         return torch.randn(n_samples, self._latent_dim, device=self._device)
 
@@ -94,6 +96,21 @@ class WGan:
         mix_real = _lam * real1 + (1 - _lam) * real2
         return mix_real
 
+    @staticmethod
+    def create_title(has_mix_up: bool, has_dp: bool) -> str:
+        """
+        create title for plot
+        :return:
+        """
+        pre_fix = "W-GAN "
+        if not has_dp and not has_mix_up:
+            return pre_fix + "Without DP and Mix-up"
+        elif has_dp:
+            pre_fix += "With DP "
+        elif has_mix_up:
+            pre_fix += "and Mix-up"
+        return pre_fix
+
     def train(self, train_dataloader: DataLoader,
               epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
               image_save_path: Union[Path, None] = None, train_dataloader_2: Union[None, DataLoader] = None):
@@ -122,7 +139,10 @@ class WGan:
                     cur_batch_size = len(real)
                 elif has_train_loader is True:
                     (real1, label1), (real2, label2) = data
-
+                    real1 = real1.float().to(self._device)
+                    real2 = real2.float().to(self._device)
+                    real = self.mix_data(real1=real1, real2=real2)
+                    cur_batch_size = len(real)
                 else:
                     raise RuntimeError("This option had not provided ...")
 
@@ -197,6 +217,8 @@ class WGan:
                 output = self.generate_new_sample()
                 torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
 
+        self._title = self.create_title(has_mix_up=has_train_loader, has_dp=False)
+
         return {"train_loss": [glob_disc_loss, glob_gen_loss],
                 "valid_loss": [val_glob_disc_loss, val_glob_gen_loss],
                 "has_valid": False if valid_dataloader is None else True,
@@ -212,8 +234,7 @@ class WGan:
         torch.save(self._discriminator.state_dict, file_name.joinpath("w_discriminator.pt"))
         torch.save(self._generator.state_dict, file_name.joinpath("w_generator.pt"))
 
-    @staticmethod
-    def plot(res: dict, save_path: Path) -> None:
+    def plot(self, res: dict, save_path: Path) -> None:
         """
         render and create plot
         :param res: training result
@@ -243,7 +264,7 @@ class WGan:
             np.save(str(weight_paths.joinpath("valid_generator_loss.npy")), v_gen)
             np.save(str(weight_paths.joinpath("valid_discriminator_loss.npy")), v_disc)
 
-        plt.title("Without DP and Mixup")
+        plt.title(self._title)
 
         plt.plot(x, t_disc, color=colors[0], label="Train Disc Loss")
         plt.plot(x, t_gen, color=colors[1], label="Train Gen Loss")
@@ -251,6 +272,8 @@ class WGan:
         if has_valid:
             plt.plot(x, v_disc, color=colors[0], label="Valid Disc Loss", linestyle="-.")
             plt.plot(x, v_gen, color=colors[1], label="Valid Gen Loss", linestyle="-.")
+
+        plt.hlines(y=0, xmin=0, xmax=res.get("epochs"), colors=colors[2], linestyles="dashed")
 
         plt.xlabel("epoch")
         plt.ylabel("loss")

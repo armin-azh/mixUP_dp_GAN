@@ -71,6 +71,7 @@ def main(arguments: argparse.Namespace) -> None:
                      disc_features=arguments.disc_feature_map,
                      critic_repeat=arguments.c_repeat,
                      c_lambda=arguments.c_lambda,
+                     alpha=arguments.alpha,
                      device=device)
 
         res = model.train(train_dataloader=train_loader,
