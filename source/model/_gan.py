@@ -92,8 +92,10 @@ class WGan:
         :param real2: tensor in shape (b,1,w,h)
         :return: tensor in shape (b,1,w,h)
         """
+        _perm1 = torch.randperm(real1.size()[0], device=self._device)
+        _perm2 = torch.randperm(real2.size()[0], device=self._device)
         _lam = self.get_lambda()
-        mix_real = _lam * real1 + (1 - _lam) * real2
+        mix_real = _lam * real1[_perm1] + (1 - _lam) * real2[_perm2]
         return mix_real
 
     @staticmethod
