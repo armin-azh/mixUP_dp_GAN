@@ -14,7 +14,8 @@ from ._arch import Generator, Critic
 
 class WGan:
     def __init__(self, image_size: Tuple[int, int], latent_dim: int, beta1: float, lr: float, image_channel: int,
-                 gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, device: torch.device):
+                 gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, alpha: float,
+                 device: torch.device):
         self._latent_dim = latent_dim
         self._image_size = image_size
         self._betas = (beta1, 0.999)
@@ -24,6 +25,7 @@ class WGan:
         self._disc_features = disc_features
         self._critic_repeat = critic_repeat
         self._c_lambda = c_lambda
+        self._alpha = alpha
         self._device = device
 
         self._generator = Generator(latent_dim=self._latent_dim, image_channel=self._image_channel,
@@ -69,13 +71,32 @@ class WGan:
                         grad_penalty: torch.Tensor):
         return torch.mean(critic_fake_pred) - torch.mean(critic_real_pred) + grad_penalty * self._c_lambda
 
-    def generate_new_sample(self):
+    def generate_new_sample(self) -> torch.Tensor:
         noise = self.get_noise(n_samples=1)
         n_image = self._generator(noise)
         return n_image
 
-    def train(self, train_dataloader, epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
-              image_save_path: Union[Path, None] = None):
+    def get_lambda(self) -> float:
+        """
+        generate new lambda value for mix up
+        :return:
+        """
+        return np.random.beta(self._alpha, self._alpha)
+
+    def mix_data(self, real1: torch.Tensor, real2: torch.Tensor) -> torch.Tensor:
+        """
+        mix the 2 real batches together
+        :param real1: tensor in shape (b,1,w,h)
+        :param real2: tensor in shape (b,1,w,h)
+        :return: tensor in shape (b,1,w,h)
+        """
+        _lam = self.get_lambda()
+        mix_real = _lam * real1 + (1 - _lam) * real2
+        return mix_real
+
+    def train(self, train_dataloader: DataLoader,
+              epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
+              image_save_path: Union[Path, None] = None, train_dataloader_2: Union[None, DataLoader] = None):
 
         glob_gen_loss = []
         glob_disc_loss = []
@@ -83,15 +104,27 @@ class WGan:
         val_glob_gen_loss = []
         val_glob_disc_loss = []
 
+        has_train_loader = False if train_dataloader_2 is None else True
+        if train_dataloader_2 is None:
+            train_dataloader_2 = [None] * len(train_dataloader)
+
         print("[READY] training is now starting ...")
         for epoch in range(epochs):
             gen_loss = []
             disc_loss = []
 
             # train phase
-            for batch_idx, data in enumerate(train_dataloader):
-                real = data[0].float().to(self._device)
-                cur_batch_size = len(real)
+            for batch_idx, data in enumerate(zip(train_dataloader, train_dataloader_2)):
+
+                if has_train_loader is False:
+                    (real1, label1), *other = data
+                    real = real1.float().to(self._device)
+                    cur_batch_size = len(real)
+                elif has_train_loader is True:
+                    (real1, label1), (real2, label2) = data
+
+                else:
+                    raise RuntimeError("This option had not provided ...")
 
                 # critic update
                 mean_iter_critic_loss = 0
@@ -181,6 +214,12 @@ class WGan:
 
     @staticmethod
     def plot(res: dict, save_path: Path) -> None:
+        """
+        render and create plot
+        :param res: training result
+        :param save_path: path to save
+        :return: none
+        """
         weight_paths = save_path.joinpath("weights")
         weight_paths.mkdir(parents=True, exist_ok=True)
 

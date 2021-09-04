@@ -48,9 +48,15 @@ def main(arguments: argparse.Namespace) -> None:
         model_save_path = save_path.joinpath("model")
         model_save_path.mkdir(parents=True, exist_ok=True)
 
+        train_loader_2 = None
         train_loader, _ = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
                                               arguments.shuffle, arguments.seed, arguments.batch,
                                               arguments.num_worker, (arguments.width, arguments.height))
+
+        if arguments.mix_up:
+            train_loader_2, _ = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                                    arguments.shuffle, arguments.seed, arguments.batch,
+                                                    arguments.num_worker, (arguments.width, arguments.height))
 
         device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
 
@@ -71,7 +77,8 @@ def main(arguments: argparse.Namespace) -> None:
                           epochs=arguments.epochs,
                           frequency=arguments.show_rate,
                           valid_dataloader=None,
-                          image_save_path=images_save_path)
+                          image_save_path=images_save_path,
+                          train_dataloader_2=train_loader_2)
 
         model.save_model(file_name=model_save_path)
         model.plot(res=res, save_path=plot_save_path)
@@ -88,7 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", help="determine the weight decay", type=float, default=1e-5)
     parser.add_argument("--lr", help="learning rate", type=float, default=1e-3)
     parser.add_argument("--seed", help="random seed", type=float, default=999)
-    parser.add_argument("--epochs", help="number of epochs", type=int, default=40)
+    parser.add_argument("--epochs", help="number of epochs", type=int, default=10)
     parser.add_argument("--shuffle", help="enable shuffling", type=bool, default=True)
     parser.add_argument("--batch", help="batch size", type=int, default=64)
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)
@@ -106,5 +113,6 @@ if __name__ == "__main__":
     parser.add_argument("--show_rate", help="show status is specific rate", type=int, default=5)
     parser.add_argument("--device", help="use cuda device", type=int, default=1)
     parser.add_argument("--alpha", help="mixup coefficient", type=float, default=1)
+    parser.add_argument("--mix_up", help="enable training with mix_up", action="store_true")
     args = parser.parse_args()
     main(args)
