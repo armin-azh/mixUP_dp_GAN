@@ -5,6 +5,7 @@ from torch import nn
 import torch
 from torch.utils.data import DataLoader
 import torchvision
+import matplotlib.pyplot as plt
 
 from ._gen import DCGANGenerator, WGenerator
 from ._disc import DCGANDiscriminator, WDiscriminator
@@ -584,3 +585,6 @@ class WGAN(nn.Module):
 
         torch.save(self._discriminator.state_dict, file_name.joinpath("w_discriminator.pt"))
         torch.save(self._generator.state_dict, file_name.joinpath("w_generator.pt"))
+
+
+
