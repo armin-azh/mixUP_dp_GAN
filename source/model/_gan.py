@@ -15,7 +15,7 @@ from ._arch import Generator, Critic
 class WGan:
     def __init__(self, image_size: Tuple[int, int], latent_dim: int, beta1: float, lr: float, image_channel: int,
                  gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, alpha: float,
-                 clip: Union[float, None], device: torch.device):
+                 clip: float, device: torch.device):
         self._latent_dim = latent_dim
         self._image_size = image_size
         self._betas = (beta1, 0.999)
@@ -116,7 +116,9 @@ class WGan:
 
     def train(self, train_dataloader: DataLoader,
               epochs: int, frequency: int = 5, valid_dataloader: Union[None, DataLoader] = None,
-              image_save_path: Union[Path, None] = None, train_dataloader_2: Union[None, DataLoader] = None):
+              image_save_path: Union[Path, None] = None,
+              train_dataloader_2: Union[None, DataLoader] = None,
+              dp: bool = False):
 
         glob_gen_loss = []
         glob_disc_loss = []
@@ -125,7 +127,6 @@ class WGan:
         val_glob_disc_loss = []
 
         has_train_loader = False if train_dataloader_2 is None else True
-        is_dp = True if self._clip_weight is not None else False
 
         if train_dataloader_2 is None:
             train_dataloader_2 = [None] * len(train_dataloader)
@@ -222,7 +223,7 @@ class WGan:
                 output = self.generate_new_sample()
                 torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
 
-        self._title = self.create_title(has_mix_up=has_train_loader, has_dp=is_dp)
+        self._title = self.create_title(has_mix_up=has_train_loader, has_dp=dp)
 
         return {"train_loss": [glob_disc_loss, glob_gen_loss],
                 "valid_loss": [val_glob_disc_loss, val_glob_gen_loss],

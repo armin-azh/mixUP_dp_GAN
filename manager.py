@@ -72,7 +72,7 @@ def main(arguments: argparse.Namespace) -> None:
                      critic_repeat=arguments.c_repeat,
                      c_lambda=arguments.c_lambda,
                      alpha=arguments.alpha,
-                     clip=arguments.clip if arguments.dp else None,
+                     clip=arguments.clip,
                      device=device)
 
         res = model.train(train_dataloader=train_loader,
@@ -80,7 +80,8 @@ def main(arguments: argparse.Namespace) -> None:
                           frequency=arguments.show_rate,
                           valid_dataloader=None,
                           image_save_path=images_save_path,
-                          train_dataloader_2=train_loader_2)
+                          train_dataloader_2=train_loader_2,
+                          dp=arguments.dp)
 
         model.save_model(file_name=model_save_path)
         model.plot(res=res, save_path=plot_save_path)
