@@ -125,6 +125,8 @@ class WGan:
         val_glob_disc_loss = []
 
         has_train_loader = False if train_dataloader_2 is None else True
+        is_dp = True if self._clip_weight is not None else False
+
         if train_dataloader_2 is None:
             train_dataloader_2 = [None] * len(train_dataloader)
 
@@ -220,7 +222,7 @@ class WGan:
                 output = self.generate_new_sample()
                 torchvision.utils.save_image(output, image_save_path.joinpath(f"image_{epoch + 1}.jpg"))
 
-        self._title = self.create_title(has_mix_up=has_train_loader, has_dp=False)
+        self._title = self.create_title(has_mix_up=has_train_loader, has_dp=is_dp)
 
         return {"train_loss": [glob_disc_loss, glob_gen_loss],
                 "valid_loss": [val_glob_disc_loss, val_glob_gen_loss],
