@@ -72,6 +72,7 @@ def main(arguments: argparse.Namespace) -> None:
                      critic_repeat=arguments.c_repeat,
                      c_lambda=arguments.c_lambda,
                      alpha=arguments.alpha,
+                     clip=arguments.clip if arguments.dp else None,
                      device=device)
 
         res = model.train(train_dataloader=train_loader,
@@ -116,5 +117,6 @@ if __name__ == "__main__":
     parser.add_argument("--device", help="use cuda device", type=int, default=1)
     parser.add_argument("--alpha", help="mixup coefficient", type=float, default=1)
     parser.add_argument("--mix_up", help="enable training with mix_up", action="store_true")
+    parser.add_argument("--dp", help="enable differential privacy on learning process", action="store_true")
     args = parser.parse_args()
     main(args)

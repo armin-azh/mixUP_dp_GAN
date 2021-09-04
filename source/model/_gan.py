@@ -15,7 +15,7 @@ from ._arch import Generator, Critic
 class WGan:
     def __init__(self, image_size: Tuple[int, int], latent_dim: int, beta1: float, lr: float, image_channel: int,
                  gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, alpha: float,
-                 device: torch.device):
+                 clip: Union[float, None], device: torch.device):
         self._latent_dim = latent_dim
         self._image_size = image_size
         self._betas = (beta1, 0.999)
@@ -26,6 +26,7 @@ class WGan:
         self._critic_repeat = critic_repeat
         self._c_lambda = c_lambda
         self._alpha = alpha
+        self._clip_weight = clip
         self._device = device
 
         self._generator = Generator(latent_dim=self._latent_dim, image_channel=self._image_channel,
