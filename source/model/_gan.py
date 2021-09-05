@@ -6,6 +6,9 @@ from torch.utils.data import DataLoader
 import torchvision
 import matplotlib.pyplot as plt
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.transforms import ToTensor
+from skimage import io
 
 # arch
 from ._arch import SimpleGenerator, SimpleDiscriminator
@@ -32,6 +35,7 @@ class WGan:
         self._device = device
         self._log_dir = log_dir
         self._has_tensorboard = tensorboard
+        self._writer = SummaryWriter(log_dir=str(self._log_dir))
 
         self._generator = Generator(latent_dim=self._latent_dim, image_channel=self._image_channel,
                                     features=self._gen_features).to(self._device)
@@ -124,6 +128,8 @@ class WGan:
               train_dataloader_2: Union[None, DataLoader] = None,
               dp: bool = False):
 
+        idx_image = 1
+
         glob_gen_loss = []
         glob_disc_loss = []
 
@@ -203,8 +209,18 @@ class WGan:
                           % (epoch + 1, epochs, batch_idx + 1, len(train_dataloader), mean_iter_critic_loss,
                              g_loss.item()))
 
+                if self._has_tensorboard:
+                    output = self.generate_new_sample()
+                    output = torch.squeeze(output, dim=0)
+                    self._writer.add_image("Image on every step", output, idx_image)
+                    idx_image += 1
+
             glob_disc_loss.append(disc_loss)
             glob_gen_loss.append(gen_loss)
+
+            if self._has_tensorboard:
+                self._writer.add_scalars("Loss", {"Discriminator": np.mean(disc_loss),
+                                                  "Generator": np.mean(gen_loss)}, epoch)
 
             # validation phase
             if valid_dataloader is not None:
@@ -301,3 +317,8 @@ class WGan:
         plt.legend()
 
         plt.savefig(str(save_path.joinpath("loss.png")))
+
+        if self._has_tensorboard:
+            _im = io.imread(str(save_path.joinpath("loss.png")))
+            _im = ToTensor()(_im)
+            self._writer.add_image("Final Result", _im, 1)
