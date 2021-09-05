@@ -4,6 +4,7 @@ import random
 from datetime import datetime
 import torch
 import numpy as np
+import os
 
 # tools
 from source.loader import get_zero_dataloader
@@ -29,6 +30,10 @@ def main(arguments: argparse.Namespace) -> None:
     :return: None
     """
     # determine seed
+    base_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    log_dir = base_dir.joinpath("log")
+    log_dir.mkdir(parents=True, exist_ok=True)
+
     random.seed(arguments.seed)
     torch.manual_seed(arguments.seed)
     np.random.seed(arguments.seed)
@@ -124,5 +129,6 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", help="mixup coefficient", type=float, default=1)
     parser.add_argument("--mix_up", help="enable training with mix_up", action="store_true")
     parser.add_argument("--dp", help="enable differential privacy on learning process", action="store_true")
+    parser.add_argument("--tensorboard", help="enable tensorboard to show the results", action="store_true")
     args = parser.parse_args()
     main(args)
