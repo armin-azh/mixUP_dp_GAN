@@ -81,7 +81,7 @@ def main(arguments: argparse.Namespace) -> None:
                      sigma=arguments.sigma,
                      batch_size=arguments.batch,
                      device=device,
-                     log_dir=log_dir.joinpath("GAN"),
+                     log_dir=log_dir.joinpath("GAN").joinpath(_cu),
                      tensorboard=arguments.tensorboard)
 
         res = model.train(train_dataloader=train_loader,
@@ -124,7 +124,7 @@ def main(arguments: argparse.Namespace) -> None:
                            image_channel=arguments.channel,
                            feature_maps=arguments.disc_feature_map,
                            tensorboard=arguments.tensorboard,
-                           log_dir=log_dir.joinpath("classifier"),
+                           log_dir=log_dir.joinpath("classifier").joinpath(_cu),
                            state_dict=state_dic,
                            device=device,
                            weight_decay=arguments.weight_decay,

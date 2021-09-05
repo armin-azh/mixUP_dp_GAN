@@ -176,9 +176,9 @@ class WGan:
         pre_fix = "W-GAN "
         if not has_dp and not has_mix_up:
             return pre_fix + "Without DP and Mix-up"
-        elif has_dp:
+        if has_dp:
             pre_fix += "With DP "
-        elif has_mix_up:
+        if has_mix_up:
             pre_fix += "and Mix-up"
         return pre_fix
 
