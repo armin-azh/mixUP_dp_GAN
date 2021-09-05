@@ -106,21 +106,27 @@ if __name__ == "__main__":
                                                                                "/mixUpGAN/data/zero_day/trainLabels.csv")
     parser.add_argument("--out", help="output path", type=str)
     parser.add_argument("--op", help="choose the operation", type=str, choices=list(operations.values()))
-    parser.add_argument("--weight_decay", help="determine the weight decay", type=float, default=1e-5)
-    parser.add_argument("--lr", help="learning rate", type=float, default=1e-3)
     parser.add_argument("--seed", help="random seed", type=float, default=999)
-    parser.add_argument("--epochs", help="number of epochs", type=int, default=10)
-    parser.add_argument("--shuffle", help="enable shuffling", type=bool, default=True)
-    parser.add_argument("--batch", help="batch size", type=int, default=64)
+
+    # loader parameter
     parser.add_argument("--num_worker", help="number of workers", type=int, default=0)
+    parser.add_argument("--shuffle", help="enable shuffling", type=bool, default=True)
     parser.add_argument("--train_size", help="train size", type=float, default=.7)
     parser.add_argument("--test_size", help="test size", type=float, default=.3)
+
+    # network parameters
+    parser.add_argument("--weight_decay", help="determine the weight decay", type=float, default=1e-5)
+    parser.add_argument("--lr", help="learning rate", type=float, default=1e-3)
     parser.add_argument("--width", help="set image width", type=int, default=65)
     parser.add_argument("--height", help="set image height", type=int, default=130)
     parser.add_argument("--channel", help="image channel", type=int, default=1)
     parser.add_argument("--beta1", help="adam hyper parameter", type=float, default=0.5)
     parser.add_argument("--gen_feature_map", help="generator feature map", type=int, default=64)
     parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
+
+    # train phase parameter
+    parser.add_argument("--epochs", help="number of epochs", type=int, default=10)
+    parser.add_argument("--batch", help="batch size", type=int, default=64)
     parser.add_argument("--clip", help="clip weight for (differential privacy)", type=float, default=0.01)
     parser.add_argument("--c_repeat", help="critic repeat for (differential privacy)", type=int, default=5)
     parser.add_argument("--c_lambda", help="critic lambda", type=int, default=10)
@@ -129,6 +135,8 @@ if __name__ == "__main__":
     parser.add_argument("--show_rate", help="show status is specific rate", type=int, default=5)
     parser.add_argument("--device", help="use cuda device", type=int, default=1)
     parser.add_argument("--alpha", help="mixup coefficient", type=float, default=1)
+
+    # mode
     parser.add_argument("--mix_up", help="enable training with mix_up", action="store_true")
     parser.add_argument("--dp", help="enable differential privacy on learning process", action="store_true")
     parser.add_argument("--tensorboard", help="enable tensorboard to show the results", action="store_true")

@@ -32,6 +32,12 @@ class SimpleDiscriminator(nn.Module):
 
 class Generator(nn.Module):
     def __init__(self, latent_dim: int, image_channel: int, features: int):
+        """
+        generator network
+        :param latent_dim: latent dimension for create noise
+        :param image_channel: image channel (default ~ 1)
+        :param features: hidden feature map
+        """
         super(Generator, self).__init__()
         self._latent_size = latent_dim
         self._image_channel = image_channel
@@ -60,12 +66,22 @@ class Generator(nn.Module):
             )
 
     def forward(self, noise: torch.Tensor) -> torch.Tensor:
+        """
+        forward propagation throughout network
+        :param noise: tensor in shape (b,latent_dim)
+        :return: tensor in shape (b,image_channel,w,h)
+        """
         x = noise.view(len(noise), self._latent_size, 1, 1)
         return self._model(x)
 
 
 class Critic(nn.Module):
     def __init__(self, image_channel: int, features: int):
+        """
+        discriminator network
+        :param image_channel: number of image channels
+        :param features: number of hidden layers
+        """
         super(Critic, self).__init__()
         self._features = features
         self._image_channel = image_channel
@@ -89,5 +105,10 @@ class Critic(nn.Module):
             )
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
+        """
+        forward propagation
+        :param img: tensor in shape (b,image_channel,w,h)
+        :return: tensor in shape (b,m)
+        """
         _pred = self._model(img)
         return _pred.view(len(_pred), -1)
