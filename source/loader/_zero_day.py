@@ -11,6 +11,20 @@ from torchvision.transforms import ToTensor
 from sklearn.model_selection import train_test_split
 from skimage import io
 from skimage.transform import resize
+from sklearn import preprocessing
+
+
+LABEL = {
+    1: "Ramnit",
+    2: "Lollipop",
+    3: "Kelihos_ver3",
+    4: "Vundo",
+    5: "Simda",
+    6: "Tracur",
+    7: "Kelihos_ver1",
+    8: "Obfuscator",
+    9: "Gatak"
+}
 
 
 class ZeroDayDataset(Dataset):
@@ -55,7 +69,11 @@ def zero_data_dataset(bs_dir: Path, label_csv: Path, train_size: float, test_siz
 
     # extract labels
     for f in file_names:
-        labels.append(label_df.loc[label_df["Id"] == f.stem]["Class"].values[0])
+        labels.append(LABEL[label_df.loc[label_df["Id"] == f.stem]["Class"].values[0]])
+
+    encoder = preprocessing.LabelEncoder()
+    encoder.fit(list(LABEL.values()))
+    labels = encoder.transform(labels)
 
     # x_train, x_valid, y_train, y_valid = train_test_split(file_names, labels, train_size=train_size,
     #                                                       test_size=test_size, random_state=random_state,

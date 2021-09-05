@@ -11,15 +11,13 @@ from source.loader import get_zero_dataloader
 
 # model
 from source.model import WGan
+from source.model import Classifier
 
 from source.tools import save_parameters
 
 operations = {
-    "conv_bin_to_im": "cvt_bin_im",
-    "auto_encoder": "train_ae",
-    "dc_gan": "train_dc_gan",
-    "dc_gan_mix_up": "train_dc_gan_mix_up",
-    "w_gan": "train_w_gan"
+    "w_gan": "train_w_gan",
+    "classifier": "train_classifier"
 }
 
 
@@ -37,6 +35,8 @@ def main(arguments: argparse.Namespace) -> None:
     random.seed(arguments.seed)
     torch.manual_seed(arguments.seed)
     np.random.seed(arguments.seed)
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
 
     if arguments.op == operations.get("w_gan"):
         im_path = Path(arguments.input)
@@ -65,8 +65,6 @@ def main(arguments: argparse.Namespace) -> None:
                                                     arguments.shuffle, arguments.seed, arguments.batch,
                                                     arguments.num_worker, (arguments.width, arguments.height))
 
-        device = torch.device("cuda:0" if (torch.cuda.is_available() and arguments.device > 0) else "cpu")
-
         save_parameters(vars(arguments), save_path.joinpath("parameters.txt"))
 
         model = WGan(image_size=(arguments.width, arguments.height),
@@ -83,7 +81,7 @@ def main(arguments: argparse.Namespace) -> None:
                      sigma=arguments.sigma,
                      batch_size=arguments.batch,
                      device=device,
-                     log_dir=log_dir,
+                     log_dir=log_dir.joinpath("GAN"),
                      tensorboard=arguments.tensorboard)
 
         res = model.train(train_dataloader=train_loader,
@@ -97,14 +95,54 @@ def main(arguments: argparse.Namespace) -> None:
         model.save_model(file_name=model_save_path)
         model.plot(res=res, save_path=plot_save_path)
 
+    elif arguments.op == operations.get("classifier"):
+        im_path = Path(arguments.input)
+        im_path = im_path.absolute()
+        label_path = Path(arguments.input_lb)
+
+        save_path = Path(arguments.out)
+        _cu = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        save_path = save_path.joinpath("classifier").joinpath(_cu)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        plot_save_path = save_path.joinpath("plot")
+        plot_save_path.mkdir(parents=True, exist_ok=True)
+        model_save_path = save_path.joinpath("model")
+        model_save_path.mkdir(parents=True, exist_ok=True)
+
+        train_loader, valid_loader = get_zero_dataloader(im_path, label_path, arguments.train_size, arguments.test_size,
+                                                         arguments.shuffle, arguments.seed, arguments.batch,
+                                                         arguments.num_worker, (arguments.width, arguments.height))
+
+        state_dic = None
+        if arguments.pretrained != "":
+            state_dic = torch.load(arguments.pretrained)
+
+        model = Classifier(lr=arguments.lr,
+                           image_channel=arguments.channel,
+                           feature_maps=arguments.disc_feature_map,
+                           tensorboard=arguments.tensorboard,
+                           log_dir=log_dir.joinpath("classifier"),
+                           state_dict=state_dic,
+                           device=device,
+                           weight_decay=arguments.weight_decay,
+                           classes=9)
+
+        res = model.train(train_dataloader=train_loader, valid_dataloader=valid_loader, epochs=arguments.epochs)
+
+        model.save_model(file_name=model_save_path)
+        model.plot(res=res, save_path=plot_save_path, posix=arguments.posix)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--input", help="input path", type=str, default="/home/lezarus/Documents/Project/mixUpGAN"
                                                                         "/data/zero_day/images")
     parser.add_argument("--input_lb", help="label csv file", type=str, default="/home/lezarus/Documents/Project"
                                                                                "/mixUpGAN/data/zero_day/trainLabels.csv")
     parser.add_argument("--out", help="output path", type=str)
+    parser.add_argument("--pretrained", help="pretrain model path", type=str, default="")
     parser.add_argument("--op", help="choose the operation", type=str, choices=list(operations.values()))
     parser.add_argument("--seed", help="random seed", type=float, default=999)
 
@@ -140,5 +178,8 @@ if __name__ == "__main__":
     parser.add_argument("--mix_up", help="enable training with mix_up", action="store_true")
     parser.add_argument("--dp", help="enable differential privacy on learning process", action="store_true")
     parser.add_argument("--tensorboard", help="enable tensorboard to show the results", action="store_true")
+
+    parser.add_argument("--posix", help="title for plot header on classifier", type=str, default="")
+
     args = parser.parse_args()
     main(args)

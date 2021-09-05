@@ -36,8 +36,65 @@ class ZeroDayDetector:
         # loss
         self._criterion = nn.CrossEntropyLoss()
 
-    def train(self, train_dataloader: DataLoader, valid_dataloader: DataLoader, epochs: int):
-        pass
+    @staticmethod
+    def accuracy(pred: torch.Tensor, label: torch.Tensor):
+        return torch.count_nonzero(torch.argmax(pred, axis=1) == label, dim=0) / pred.shape[0]
+
+    def train(self, train_dataloader: DataLoader, valid_dataloader: DataLoader, epochs: int, frequency: int = 5):
+
+        print("[READY] training is now starting ...")
+        glob_train_loss = []
+        glob_valid_loss = []
+        glob_train_acc = []
+        glob_valid_acc = []
+        for epoch in range(epochs):
+
+            train_loss = []
+            valid_loss = []
+            train_acc = []
+            valid_acc = []
+
+            for batch_idx, data in enumerate(train_dataloader):
+                real, label = data
+                real = real.float().to(self._device)
+                label = label.long().to(self._device)
+
+                self._opt.zero_grad()
+                pred = self._detector(real)
+                loss = self._criterion(pred, label)
+                loss.backward()
+                self._opt.step()
+
+                _acc = self.accuracy(pred, label)
+
+                train_loss.append(loss.item())
+                train_acc.append(_acc.item())
+
+                # display
+                if batch_idx % frequency == 0:
+                    print('[TRAIN] => [%d/%d][%d/%d]\tLoss: %.4f\tAccuracy: %.4f'
+                          % (epoch + 1, epochs, batch_idx + 1, len(train_dataloader), loss.item(), _acc.item()))
+
+            glob_train_loss.append(train_loss)
+            glob_train_acc.append(train_acc)
+
+            # check validation
+            for val_data in valid_dataloader:
+                val_real, val_label = val_data
+                val_real = val_real.float().to(self._device)
+                val_label = val_label.long().to(self._device)
+
+                val_pred = self._detector(val_real)
+                val_loss = self._criterion(val_pred, val_label)
+
+                valid_loss.append(val_loss.item())
+                valid_acc.append(self.accuracy(val_pred, val_loss))
+
+            glob_valid_loss.append(valid_loss)
+            glob_valid_acc.append(valid_acc)
+
+        return {"loss": [glob_train_loss, glob_valid_loss], "accuracy": [glob_train_acc, glob_valid_acc],
+                "epochs": epochs}
 
     def save_model(self, file_name: Path) -> None:
         """
@@ -48,9 +105,10 @@ class ZeroDayDetector:
 
         torch.save(self._detector.state_dict(), file_name.joinpath("detector.pth"))
 
-    def plot(self, res: dict, save_path: Path) -> None:
+    def plot(self, res: dict, save_path: Path, posix: str) -> None:
         """
         render and create plot
+        :param posix:
         :param res: training result
         :param save_path: path to save
         :return: none
@@ -61,41 +119,48 @@ class ZeroDayDetector:
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         x = np.arange(res.get("epochs")) + 1
 
-        train_loss = res["train_loss"]
-        valid_loss = res["valid_loss"]
-        has_valid = res["has_valid"]
+        train_loss, valid_loss = res["loss"]
+        train_acc, valid_acc = res["accuracy"]
 
-        t_gen = np.array(train_loss[1]).mean(axis=1)
-        t_disc = np.array(train_loss[0]).mean(axis=1)
+        t_loss = np.array(train_loss).mean(axis=1)
+        v_loss = np.array(valid_loss).mean(axis=1)
 
-        np.save(str(weight_paths.joinpath("train_generator_loss.npy")), t_gen)
-        np.save(str(weight_paths.joinpath("train_discriminator_loss.npy")), t_disc)
+        np.save(str(weight_paths.joinpath("train_loss.npy")), t_loss)
+        np.save(str(weight_paths.joinpath("valid_loss.npy")), v_loss)
 
-        if has_valid:
-            v_gen = np.array(valid_loss[1]).mean(axis=1)
-            v_disc = np.array(valid_loss[0]).mean(axis=1)
+        # accuracy
+        t_acc = np.array(train_acc).mean(axis=1)
+        v_acc = np.array(valid_acc).mean(axis=1)
 
-            np.save(str(weight_paths.joinpath("valid_generator_loss.npy")), v_gen)
-            np.save(str(weight_paths.joinpath("valid_discriminator_loss.npy")), v_disc)
+        np.save(str(weight_paths.joinpath("train_acc.npy")), t_acc)
+        np.save(str(weight_paths.joinpath("valid_acc.npy")), v_acc)
 
-        plt.title(self._title)
+        plt.title(f"Loss ({posix})")
 
-        plt.plot(x, t_disc, color=colors[0], label="Train Disc Loss")
-        plt.plot(x, t_gen, color=colors[1], label="Train Gen Loss")
+        plt.semilogy(x, t_loss, color=colors[0], label="Train Loss")
+        plt.semilogy(x, v_loss, color=colors[1], label="valid Loss", linestyle="--")
 
-        if has_valid:
-            plt.plot(x, v_disc, color=colors[0], label="Valid Disc Loss", linestyle="-.")
-            plt.plot(x, v_gen, color=colors[1], label="Valid Gen Loss", linestyle="-.")
-
-        plt.hlines(y=0, xmin=0, xmax=res.get("epochs"), colors=colors[2], linestyles="dashed")
-
-        plt.xlabel("epoch")
-        plt.ylabel("loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
         plt.legend()
-
         plt.savefig(str(save_path.joinpath("loss.png")))
+
+        # Accuracy
+        plt.title(f"Accuracy ({posix})")
+
+        plt.semilogy(x, t_acc, color=colors[0], label="Train Accuracy")
+        plt.semilogy(x, v_acc, color=colors[1], label="valid Accuracy", linestyle="--")
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        plt.savefig(str(save_path.joinpath("accuracy.png")))
 
         if self._has_tensorboard:
             _im = io.imread(str(save_path.joinpath("loss.png")))
             _im = ToTensor()(_im)
-            self._writer.add_image("Final Result", _im, 1)
+            self._writer.add_image("Final Loss", _im, 1)
+
+            _im = io.imread(str(save_path.joinpath("accuracy.png")))
+            _im = ToTensor()(_im)
+            self._writer.add_image("Final Accuracy", _im, 1)

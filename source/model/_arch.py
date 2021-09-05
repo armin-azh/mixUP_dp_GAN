@@ -134,7 +134,7 @@ class Detector(nn.Module):
             self._bone,
             nn.Flatten(),
             nn.Linear(in_features=84, out_features=classes),
-            nn.Softmax(),
+            nn.Softmax(dim=1),
         )
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
