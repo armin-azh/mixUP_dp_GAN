@@ -15,7 +15,7 @@ from ._arch import Generator, Critic
 class WGan:
     def __init__(self, image_size: Tuple[int, int], latent_dim: int, beta1: float, lr: float, image_channel: int,
                  gen_features: int, disc_features: int, critic_repeat: int, c_lambda: int, alpha: float,
-                 clip: float, sigma: float, batch_size: int, device: torch.device):
+                 clip: float, sigma: float, batch_size: int, log_dir: Path, tensorboard: bool, device: torch.device):
         self._latent_dim = latent_dim
         self._image_size = image_size
         self._betas = (beta1, 0.999)
@@ -30,6 +30,8 @@ class WGan:
         self._sigma = sigma
         self._batch_size = batch_size
         self._device = device
+        self._log_dir = log_dir
+        self._has_tensorboard = tensorboard
 
         self._generator = Generator(latent_dim=self._latent_dim, image_channel=self._image_channel,
                                     features=self._gen_features).to(self._device)
@@ -136,7 +138,8 @@ class WGan:
         if dp:
             for p in self._discriminator.parameters():
                 p.register_hook(
-                    lambda grad_: grad_ + (1 / self._batch_size) * torch.normal(mean=0, std=self._sigma, size=p.shape,device=self._device))
+                    lambda grad_: grad_ + (1 / self._batch_size) * torch.normal(mean=0, std=self._sigma, size=p.shape,
+                                                                                device=self._device))
 
         print("[READY] training is now starting ...")
         for epoch in range(epochs):
