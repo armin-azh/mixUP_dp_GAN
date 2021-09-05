@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--disc_feature_map", help="discriminator feature map", type=int, default=64),
 
     # train phase parameter
-    parser.add_argument("--epochs", help="number of epochs", type=int, default=10)
+    parser.add_argument("--epochs", help="number of epochs", type=int, default=5)
     parser.add_argument("--batch", help="batch size", type=int, default=64)
     parser.add_argument("--clip", help="clip weight for (differential privacy)", type=float, default=0.01)
     parser.add_argument("--c_repeat", help="critic repeat for (differential privacy)", type=int, default=5)

@@ -87,8 +87,10 @@ class ZeroDayDetector:
                 val_pred = self._detector(val_real)
                 val_loss = self._criterion(val_pred, val_label)
 
+                _val_acc = self.accuracy(val_pred, val_label)
+
                 valid_loss.append(val_loss.item())
-                valid_acc.append(self.accuracy(val_pred, val_loss))
+                valid_acc.append(_val_acc.item())
 
             glob_valid_loss.append(valid_loss)
             glob_valid_acc.append(valid_acc)
@@ -105,14 +107,16 @@ class ZeroDayDetector:
 
         torch.save(self._detector.state_dict(), file_name.joinpath("detector.pth"))
 
-    def plot(self, res: dict, save_path: Path, posix: str) -> None:
+    def plot(self, res: dict, save_path: Path, posix: str, t_p: str = "acc") -> None:
         """
         render and create plot
+        :param t_p:
         :param posix:
         :param res: training result
         :param save_path: path to save
         :return: none
         """
+
         weight_paths = save_path.joinpath("weights")
         weight_paths.mkdir(parents=True, exist_ok=True)
 
@@ -120,20 +124,16 @@ class ZeroDayDetector:
         x = np.arange(res.get("epochs")) + 1
 
         train_loss, valid_loss = res["loss"]
-        train_acc, valid_acc = res["accuracy"]
+        
+        plt.figure(figsize=(20,20))
+
+        plt.subplot(2, 1, 1)
 
         t_loss = np.array(train_loss).mean(axis=1)
         v_loss = np.array(valid_loss).mean(axis=1)
 
         np.save(str(weight_paths.joinpath("train_loss.npy")), t_loss)
         np.save(str(weight_paths.joinpath("valid_loss.npy")), v_loss)
-
-        # accuracy
-        t_acc = np.array(train_acc).mean(axis=1)
-        v_acc = np.array(valid_acc).mean(axis=1)
-
-        np.save(str(weight_paths.joinpath("train_acc.npy")), t_acc)
-        np.save(str(weight_paths.joinpath("valid_acc.npy")), v_acc)
 
         plt.title(f"Loss ({posix})")
 
@@ -143,24 +143,28 @@ class ZeroDayDetector:
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.legend()
-        plt.savefig(str(save_path.joinpath("loss.png")))
 
-        # Accuracy
+        train_acc, valid_acc = res["accuracy"]
+
+        t_acc = np.array(train_acc).mean(axis=1)
+        v_acc = np.array(valid_acc).mean(axis=1)
+
+        np.save(str(weight_paths.joinpath("train_acc.npy")), t_acc)
+        np.save(str(weight_paths.joinpath("valid_acc.npy")), v_acc)
+
+        plt.subplot(2, 1, 2)
+
         plt.title(f"Accuracy ({posix})")
 
-        plt.semilogy(x, t_acc, color=colors[0], label="Train Accuracy")
-        plt.semilogy(x, v_acc, color=colors[1], label="valid Accuracy", linestyle="--")
+        plt.plot(x, t_acc, color=colors[0], label="Train Accuracy")
+        plt.plot(x, v_acc, color=colors[1], label="valid Accuracy", linestyle="--")
 
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy")
         plt.legend()
-        plt.savefig(str(save_path.joinpath("accuracy.png")))
+        plt.savefig(str(save_path.joinpath("results.png")))
 
         if self._has_tensorboard:
-            _im = io.imread(str(save_path.joinpath("loss.png")))
+            _im = io.imread(str(save_path.joinpath("results.png")))
             _im = ToTensor()(_im)
-            self._writer.add_image("Final Loss", _im, 1)
-
-            _im = io.imread(str(save_path.joinpath("accuracy.png")))
-            _im = ToTensor()(_im)
-            self._writer.add_image("Final Accuracy", _im, 1)
+            self._writer.add_image("Final results", _im, 1)
