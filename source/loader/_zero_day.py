@@ -75,13 +75,13 @@ def zero_data_dataset(bs_dir: Path, label_csv: Path, train_size: float, test_siz
     encoder.fit(list(LABEL.values()))
     labels = encoder.transform(labels)
 
-    # x_train, x_valid, y_train, y_valid = train_test_split(file_names, labels, train_size=train_size,
-    #                                                       test_size=test_size, random_state=random_state,
-    #                                                       shuffle=shuffle)
-
-    x_train, x_valid, y_train, y_valid = train_test_split(file_names[:1000], labels[:1000], train_size=train_size,
+    x_train, x_valid, y_train, y_valid = train_test_split(file_names, labels, train_size=train_size,
                                                           test_size=test_size, random_state=random_state,
                                                           shuffle=shuffle)
+
+    # x_train, x_valid, y_train, y_valid = train_test_split(file_names[:1000], labels[:1000], train_size=train_size,
+    #                                                       test_size=test_size, random_state=random_state,
+    #                                                       shuffle=shuffle)
 
     return ZeroDayDataset(x_train, y_train, output_size), ZeroDayDataset(x_valid, y_valid, output_size)
 
