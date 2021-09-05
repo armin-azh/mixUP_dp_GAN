@@ -359,8 +359,8 @@ class WGan:
         :return: None
         """
 
-        torch.save(self._discriminator.state_dict, file_name.joinpath("w_discriminator.pt"))
-        torch.save(self._generator.state_dict, file_name.joinpath("w_generator.pt"))
+        torch.save(self._discriminator.state_dict(), file_name.joinpath("w_discriminator.pth"))
+        torch.save(self._generator.state_dict(), file_name.joinpath("w_generator.pth"))
 
     def plot(self, res: dict, save_path: Path) -> None:
         """

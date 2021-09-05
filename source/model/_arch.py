@@ -44,7 +44,7 @@ class Generator(nn.Module):
         self._features = features
         self._model = nn.Sequential(
             self.make_block(self._latent_size, self._features * 8, kernel_size=4, stride=1, padding=0),
-            self.make_block(self._features * 8, self._features * 4,kernel_size=3, padding=0),
+            self.make_block(self._features * 8, self._features * 4, kernel_size=3, padding=0),
             self.make_block(self._features * 4, self._features * 2),
             self.make_block(self._features * 2, self._features * 1),
             self.make_block(self._features * 1, self._features * 1),
@@ -112,3 +112,30 @@ class Critic(nn.Module):
         """
         _pred = self._model(img)
         return _pred.view(len(_pred), -1)
+
+
+class Detector(nn.Module):
+    def __init__(self, image_channel: int, features: int, classes: int, state_dic):
+        """
+        detector
+        :param image_channel: number of image channels
+        :param features: number of features maps
+        :param classes: number of classes
+        :param state_dic: if use transfer learning
+        """
+        super(Detector, self).__init__()
+
+        self._bone = Critic(image_channel=image_channel, features=features)
+
+        if state_dic is not None:
+            self._bone.load_state_dict(state_dict=state_dic)
+
+        self._seq_model = nn.Sequential(
+            self._bone,
+            nn.Flatten(),
+            nn.Linear(in_features=84, out_features=classes),
+            nn.Softmax(),
+        )
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+        return self._seq_model(img)
