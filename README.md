@@ -67,3 +67,9 @@ Train classifier with no pretrained model
 Train classifier with pretrained model
 
      python manager.py --input /path/dataset --op train_classifier --out /path/to/save --num_worker 4 --epochs 20 --pretrained /path/to/model.pth
+
+### Formula
+
+    for epoch = 1,2, ... epochs
+        for batch1,batch2 in dataloader
+            
