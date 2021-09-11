@@ -18,14 +18,14 @@ from settings import project_dir
 
 LABEL = {
     1: "Ramnit",
-    2: "Lollipop",
+    # 2: "Lollipop",
     3: "Kelihos_ver3",
-    4: "Vundo",
+    # 4: "Vundo",
     5: "Simda",
-    6: "Tracur",
+    # 6: "Tracur",
     7: "Kelihos_ver1",
-    8: "Obfuscator",
-    9: "Gatak"
+    # 8: "Obfuscator",
+    # 9: "Gatak"
 }
 
 
