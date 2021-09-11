@@ -13,6 +13,8 @@ from skimage import io
 from skimage.transform import resize
 from sklearn import preprocessing
 
+from settings import project_dir
+
 
 LABEL = {
     1: "Ramnit",
@@ -63,7 +65,8 @@ def zero_data_dataset(bs_dir: Path, label_csv: Path, train_size: float, test_siz
     :param random_state: set random seed
     :return: train dataset, validation dataset
     """
-    file_path_df = pd.read_csv("nutshell.csv")["path"].tolist()
+
+    file_path_df = pd.read_csv(str(project_dir.joinpath("source/loader/nutshell.csv")))["path"].tolist()
     file_names = [bs_dir.joinpath(p) for p in file_path_df]
     label_df = pd.read_csv(label_csv)
     labels = []
