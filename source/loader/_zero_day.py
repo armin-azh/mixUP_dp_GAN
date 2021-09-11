@@ -63,7 +63,8 @@ def zero_data_dataset(bs_dir: Path, label_csv: Path, train_size: float, test_siz
     :param random_state: set random seed
     :return: train dataset, validation dataset
     """
-    file_names = list(bs_dir.glob("*.png"))
+    file_path_df = pd.read_csv("nutshell.csv")["path"].tolist()
+    file_names = [bs_dir.joinpath(p) for p in file_path_df]
     label_df = pd.read_csv(label_csv)
     labels = []
 
